@@ -52,8 +52,10 @@ SUFFIX	([afpnumkMGTPE])
  /* Commands */
 ^"mode "[bdhox]$ { mode_switch(yytext[5]); /* XXX */ printf("mode switch to %c\n", yytext[5]); }
 ^"m "[bdhox]$    { mode_switch(yytext[2]); /* XXX */ printf("mode switch to %c\n", yytext[2]); }
-^"ls"$           { /* XXX */ varlist(); }
-^"quit"$         { exit(0); }
+^"ls"$           { varlist(); }
+^"lsfn"$         { funlist(); }
+^"quit"$         { exit(0);   }
+^"help"$         { help();    }
 
  /* names; symtype returns either FUNC or VAR (if in doubt, VAR) */
 [a-zA-Z_][a-zA-Z0-9_]*  { yylval.s = strdup(yytext); return NAME; }

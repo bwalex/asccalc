@@ -376,6 +376,7 @@ _initbuiltin(void)
 		fn->fn = builtin_funcs[i].fn;
 		fn->minargs = builtin_funcs[i].minargs;
 		fn->maxargs = builtin_funcs[i].maxargs;
+		fn->builtin = 1;
 	}
 }
 
@@ -427,3 +428,60 @@ funlookup(const char *s, int alloc)
 
 	return fn;
 }
+
+
+struct fun_iteration {
+	char **s;
+	int count;
+	int allocsize;
+};
+
+
+static
+int
+_name_comp(const void *a, const void *b)
+{
+	return strcmp(* (char * const *) a, * (char * const *) b);
+}
+
+
+static
+void
+_fun_iterator(void *priv, hashobj_t obj)
+{
+	struct fun_iteration *ip = priv;
+
+	if (ip->count == ip->allocsize) {
+		ip->allocsize += 32;
+		ip->s = realloc(ip->s, ip->allocsize * sizeof(char *));
+		if (ip->s == NULL) {
+			yyerror("ENOMEM");
+			exit(1);
+		}
+	}
+
+	ip->s[ip->count++] = obj->str;
+}
+
+
+void
+funlist(void)
+{
+	struct fun_iteration i;
+	func_t f;
+	int n;
+
+	i.s = NULL;
+	i.count = 0;
+	i.allocsize = 0;
+
+	hashtable_iterate(funtbl, _fun_iterator, &i);
+	qsort(i.s, i.count, sizeof(char *), _name_comp);
+
+	printf("Functions:\n");
+	for (n = 0; n < i.count; n++) {
+		f = funlookup(i.s[n], 0);
+		printf("%s%s\n", i.s[n], f->builtin ? "\t\t [builtin]" : "");
+	}
+}
+

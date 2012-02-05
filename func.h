@@ -46,6 +46,7 @@ typedef struct func
 	builtin_func_t fn;
 	int minargs;
 	int maxargs;
+	int builtin;
 } *func_t;
 
 
@@ -53,3 +54,4 @@ typedef struct func
 int funinit(void);
 func_t funlookup(const char *s, int alloc);
 num_t call_builtin(char *s, explist_t l);
+void funlist(void);

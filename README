@@ -2,3 +2,6 @@ asccalc - A Simple Console Calculator
 
 Pretty much an experimental console calculator - WIP.
 Better description to come soon.
+
+Dependencies:
+apt-get install flex bison libedit-dev libmpfr-dev libgmp-dev

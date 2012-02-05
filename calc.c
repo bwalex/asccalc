@@ -284,7 +284,7 @@ test_print_num(num_t n)
 		mpfr_printf("%s%s\n", prefix, s);
 		free(s);
 	} else if (a->num_type == NUM_FP) {
-		mpfr_printf("%Rf\n", F(a));
+		mpfr_printf("%Rg\n", F(a));
 	} else {
 		printf("invalid!\n");
 	}
@@ -317,4 +317,22 @@ go(ast_t a)
 	ast_delete(a);
 
 	//printf("Allocations: %d\n", nallocations);
+}
+
+
+void
+help(void)
+{
+	printf("Commands:\n");
+
+	printf("\tls\t\t- Lists all variables\n\n");
+
+	printf("\tlsfn\t\t- Lists all functions\n\n");
+
+	printf("\tm <MODE>\t- Same as 'mode'\n\n");
+
+	printf("\tmode <MODE>\t- Switches to <MODE>, where mode is one\n");
+	printf("\t\t\t  of the following: b,d,h,o,x - for binary, decimal, \n");
+	printf("\t\t\t  hexadecimal, octal, hexadecimal output\n\n");
+	printf("\tquit\t\t- Exits the program\n\n");
 }

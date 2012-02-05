@@ -160,6 +160,7 @@ varlist(void)
 	hashtable_iterate(vartbl, _var_iterator, &i);
 	qsort(i.s, i.count, sizeof(char *), _name_comp);
 
+	printf("Variables:\n");
 	for (n = 0; n < i.count; n++) {
 		printf("%s = ", i.s[n]);
 		var = varlookup(i.s[n], 0);

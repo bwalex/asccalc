@@ -40,3 +40,4 @@ num_t eval(ast_t a);
 void test_print_num(num_t n);
 void yyerror(const char *s, ...);
 void free_temp_bucket(void);
+void help(void);
