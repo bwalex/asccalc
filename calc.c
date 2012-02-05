@@ -100,6 +100,11 @@ main(int argc, char *argv[])
 	el_set(el, EL_EDITOR, "emacs");
 	el_set(el, EL_CLIENTDATA, &linecontchar);
 
+	printf("ascalc - A Simple Console Calculator\n");
+	printf("Copyright (c) 2012 Alex Hornung\n");
+	printf("Type 'help' for available commands\n");
+	printf("\n");
+	
 	linecont = 0;
 	linecontchar = 0;
 	contbuf = NULL;
