@@ -17,6 +17,7 @@
   ast_t a;
   char *s;
   explist_t el;
+  cmptype_t ct;
 }
 
 %token <a> NUM
@@ -24,6 +25,9 @@
 
 %token EOL
 
+%token IF THEN ELSE WHILE DO FUNCTION ENDFUNCTION
+
+%nonassoc <ct> CMP
 
 %right '='
 %left '-' '+' OR XOR
@@ -34,23 +38,25 @@
 %nonassoc '!'
 
 
-%type <a> exp
+%type <a> exp stmt
 %type <el> explist
 
+%start clist
 
 %%
-input:    /* empty string */
-        | input line
+
+
+stmt:     exp
 ;
 
-
-line:     EOL { }
-        | exp EOL  { go($1); }
+clist: /* nothing */
+        | clist stmt EOL { go($2); }
         | error EOL  { yyerrok;  }/* on error, skip until end of line */
 ;
 
 
-exp: exp '+' exp          { $$ = ast_new(OP_ADD, $1,$3); }
+exp: exp CMP exp          { $$ = ast_newcmp($2, $1, $3); }
+   | exp '+' exp          { $$ = ast_new(OP_ADD, $1,$3); }
    | exp '-' exp          { $$ = ast_new(OP_SUB, $1,$3); }
    | exp '*' exp          { $$ = ast_new(OP_MUL, $1,$3); }
    | exp '/' exp          { $$ = ast_new(OP_DIV, $1,$3); }

@@ -172,12 +172,22 @@ main(int argc, char *argv[])
 num_t
 eval(ast_t a)
 {
+	astcmp_t acmp;
 	num_t n, l, r;
 	var_t var;
 
 	assert(a != NULL);
 
 	switch (a->op_type) {
+	case OP_CMP:
+		acmp = (astcmp_t)a;
+		l = eval(acmp->l);
+		r = eval(acmp->r);
+		if (l == NULL || r == NULL)
+			return NULL;
+		n = num_cmp(acmp->cmp_type, l, r);
+		break;
+		
 	case OP_ADD:
 	case OP_SUB:
 	case OP_MUL:

@@ -62,6 +62,16 @@ typedef struct astassign
 } *astassign_t;
 
 
+typedef struct astcmp
+{
+	optype_t op_type;
+
+	cmptype_t cmp_type;
+	ast_t l;
+	ast_t r;
+} *astcmp_t;
+
+
 typedef struct explist
 {
 	ast_t ast;
@@ -86,5 +96,6 @@ ast_t ast_newcall(char *s, explist_t l);
 ast_t ast_newref(char *s);
 ast_t ast_newassign(char *s, ast_t v);
 ast_t ast_newnum(numtype_t type, char *str);
+ast_t ast_newcmp(cmptype_t ct, ast_t l, ast_t r);
 explist_t ast_newexplist(ast_t exp, explist_t next);
 void ast_delete(ast_t a);

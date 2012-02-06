@@ -48,5 +48,17 @@ typedef enum OP_TYPE
 	OP_CALL,
 	OP_VARREF,
 	OP_VARASSIGN,
-	OP_NUM
+	OP_NUM,
+	OP_CMP
 } optype_t;
+
+
+typedef enum CMP_TYPE
+{
+	CMP_GE,
+	CMP_LE,
+	CMP_NE,
+	CMP_EQ,
+	CMP_GT,
+	CMP_LT
+} cmptype_t;

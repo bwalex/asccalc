@@ -20,6 +20,13 @@ SUFFIX	([afpnumkMGTPE])
 "**" |
 "^^"    { return POW; }
 
+">="    { yylval.ct = CMP_GE; return CMP; }
+"<="    { yylval.ct = CMP_LE; return CMP; }
+"!="    { yylval.ct = CMP_NE; return CMP; }
+"=="    { yylval.ct = CMP_EQ; return CMP; }
+">"     { yylval.ct = CMP_GT; return CMP; }
+"<"     { yylval.ct = CMP_LT; return CMP; }
+
  /* single character ops */
 "+" |
 "-" |

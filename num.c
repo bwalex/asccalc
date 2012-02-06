@@ -383,6 +383,33 @@ num_float_two_op(optype_t op_type, num_t a, num_t b)
 
 
 num_t
+num_cmp(cmptype_t ct, num_t a, num_t b)
+{
+	num_t r;
+	int s;
+	
+	r = num_new_z(N_TEMP, NULL);
+	a = num_new_fp(N_TEMP, a);
+	b = num_new_fp(N_TEMP, b);
+
+	s = mpfr_cmp(F(a), F(b));
+	
+	switch (ct) {
+	case CMP_GE: mpz_set_ui(Z(r), (s >= 0) ? 1 : 0); break;
+	case CMP_LE: mpz_set_ui(Z(r), (s <= 0) ? 1 : 0); break;
+	case CMP_NE: mpz_set_ui(Z(r), (s != 0) ? 1 : 0); break;
+	case CMP_EQ: mpz_set_ui(Z(r), (s == 0) ? 1 : 0); break;
+	case CMP_GT: mpz_set_ui(Z(r), (s >  0) ? 1 : 0); break;
+	case CMP_LT: mpz_set_ui(Z(r), (s <  0) ? 1 : 0); break;
+	default:
+		yyerror("Unknown cmp in num_cmp");
+	}
+
+	return r;
+}
+
+
+num_t
 num_float_one_op(optype_t op_type, num_t a)
 {
 	num_t r;

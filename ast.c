@@ -143,6 +143,25 @@ ast_newnum(numtype_t type, char *str)
 }
 
 
+ast_t
+ast_newcmp(cmptype_t ct, ast_t l, ast_t r)
+{
+	astcmp_t a;
+
+	if ((a = alloc_safe_mem(BUCKET_AST, sizeof(*a))) == NULL) {
+		yyerror("ENOMEM");
+		exit(1);
+	}
+
+	a->op_type = OP_CMP;
+	a->cmp_type = ct;
+	a->l = l;
+	a->r = r;
+
+	return (ast_t) a;
+}
+
+
 explist_t
 ast_newexplist(ast_t exp, explist_t next)
 {
@@ -182,6 +201,7 @@ ast_delete(ast_t a)
 	astcall_t ac;
 	astref_t ar;
 	astassign_t aa;
+	astcmp_t acmp;
 
 	
 	switch (a->op_type) {
@@ -207,6 +227,13 @@ ast_delete(ast_t a)
 			ast_delete(a->r);
 		break;
 
+	case OP_CMP:
+		acmp = (astcmp_t)a;
+		if (acmp->l != NULL)
+			ast_delete(a->l);
+		if (acmp->r != NULL)
+			ast_delete(a->r);
+		break;
 
 	case OP_NUM:
 		an = (astnum_t)a;
