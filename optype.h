@@ -49,7 +49,9 @@ typedef enum OP_TYPE
 	OP_VARREF,
 	OP_VARASSIGN,
 	OP_NUM,
-	OP_CMP
+	OP_CMP,
+	OP_LISTING,
+	OP_FLOW
 } optype_t;
 
 
@@ -62,3 +64,10 @@ typedef enum CMP_TYPE
 	CMP_GT,
 	CMP_LT
 } cmptype_t;
+
+
+typedef enum FLOW_TYPE
+{
+	FLOW_IF,
+	FLOW_WHILE
+} flowtype_t;

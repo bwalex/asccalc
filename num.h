@@ -59,6 +59,7 @@ num_t num_new_from_str(int flags, numtype_t typehint, char *str);
 num_t num_new_const_pi(int flags);
 num_t num_new_const_catalan(int flags);
 num_t num_new_const_e(int flags);
+num_t num_new_const_zero(int flags);
 
 void num_delete(num_t a);
 void num_delete_temp(void);
@@ -68,6 +69,7 @@ num_t num_int_one_op(optype_t op_type, num_t a);
 num_t num_float_two_op(optype_t op_type, num_t a, num_t b);
 num_t num_float_one_op(optype_t op_type, num_t a);
 num_t num_cmp(cmptype_t ct, num_t a, num_t b);
+int num_is_zero(num_t a);
 
 void num_init(void);
 

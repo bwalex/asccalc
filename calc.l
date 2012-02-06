@@ -56,6 +56,17 @@ SUFFIX	([afpnumkMGTPE])
 ">>"    { return SHR; }
 "<<"    { return SHL; }
 
+ /* keywords */
+"if"    { return IF; }
+"then"  { return THEN; }
+"else"  { return ELSE; }
+"fi"    { return FI; }
+"while" { return WHILE; }
+"do"    { return DO; }
+"done"  { return DONE; }
+"function" { return FUNCTION; }
+"endfunction" { return ENDFUNCTION; }
+
  /* Commands */
 ^"mode "[bdhox]$ { mode_switch(yytext[5]); /* XXX */ printf("mode switch to %c\n", yytext[5]); }
 ^"m "[bdhox]$    { mode_switch(yytext[2]); /* XXX */ printf("mode switch to %c\n", yytext[2]); }

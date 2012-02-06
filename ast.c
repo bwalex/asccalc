@@ -162,6 +162,26 @@ ast_newcmp(cmptype_t ct, ast_t l, ast_t r)
 }
 
 
+ast_t
+ast_newflow(flowtype_t ft, ast_t c, ast_t t, ast_t f)
+{
+	astflow_t a;
+
+	if ((a = alloc_safe_mem(BUCKET_AST, sizeof(*a))) == NULL) {
+		yyerror("ENOMEM");
+		exit(1);
+	}
+
+	a->op_type = OP_FLOW;
+	a->flow_type = ft;
+	a->cond = c;
+	a->t = t;
+	a->f = f;
+
+	return (ast_t) a;
+}
+
+
 explist_t
 ast_newexplist(ast_t exp, explist_t next)
 {
@@ -202,6 +222,7 @@ ast_delete(ast_t a)
 	astref_t ar;
 	astassign_t aa;
 	astcmp_t acmp;
+	astflow_t af;
 
 	
 	switch (a->op_type) {
@@ -221,6 +242,7 @@ ast_delete(ast_t a)
 	case OP_FAC:
 	case OP_UMINUS:
 	case OP_UINV:
+	case OP_LISTING:
 		if (a->l != NULL)
 			ast_delete(a->l);
 		if (a->r != NULL)
@@ -230,11 +252,21 @@ ast_delete(ast_t a)
 	case OP_CMP:
 		acmp = (astcmp_t)a;
 		if (acmp->l != NULL)
-			ast_delete(a->l);
+			ast_delete(acmp->l);
 		if (acmp->r != NULL)
-			ast_delete(a->r);
+			ast_delete(acmp->r);
 		break;
 
+	case OP_FLOW:
+		af = (astflow_t)a;
+		if (af->cond != NULL)
+			ast_delete(af->cond);
+		if (af->t != NULL)
+			ast_delete(af->t);
+		if (af->f != NULL)
+			ast_delete(af->f);
+		break;
+		
 	case OP_NUM:
 		an = (astnum_t)a;
 		num_delete(an->num);

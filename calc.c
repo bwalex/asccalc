@@ -173,7 +173,8 @@ num_t
 eval(ast_t a)
 {
 	astcmp_t acmp;
-	num_t n, l, r;
+	astflow_t af;
+	num_t n, c, l, r;
 	var_t var;
 
 	assert(a != NULL);
@@ -186,6 +187,29 @@ eval(ast_t a)
 		if (l == NULL || r == NULL)
 			return NULL;
 		n = num_cmp(acmp->cmp_type, l, r);
+		break;
+
+	case OP_LISTING:
+		eval(a->l);
+		n = eval(a->r);
+		break;
+		
+	case OP_FLOW:
+		af = (astflow_t)a;
+		c = eval(af->cond);
+		if (c == NULL)
+			return NULL;
+		if (!num_is_zero(c)) {
+			if (af->t == NULL)
+				n = num_new_const_zero(N_TEMP);
+			else
+				n = eval(af->t);
+		} else {
+			if (af->f == NULL)
+				n = num_new_const_zero(N_TEMP);
+			else
+				n = eval(af->f);
+		}
 		break;
 		
 	case OP_ADD:

@@ -260,6 +260,41 @@ num_new_const_e(int flags)
 
 
 num_t
+num_new_const_zero(int flags)
+{
+	num_t r;
+
+	r = num_new_fp(flags, NULL);
+	mpfr_init_set_si(F(r), 0, MPFR_RNDN);
+	
+	return r;
+}
+
+
+int
+num_is_zero(num_t a)
+{
+	int nz = 0;
+
+	switch (a->num_type) {
+	case NUM_INT:
+		nz = mpz_cmp_si(Z(a), 0);
+		break;
+		
+	case NUM_FP:
+		nz = mpfr_cmp_si(F(a), 0);
+		break;
+		
+	default:
+		yyerror("invalid number at num_is_zero!");
+		exit(1);
+	}
+
+	return !nz;
+}
+
+
+num_t
 num_int_two_op(optype_t op_type, num_t a, num_t b)
 {
 	num_t r;

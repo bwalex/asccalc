@@ -88,6 +88,17 @@ typedef struct astcall
 } *astcall_t;
 
 
+typedef struct astflow
+{
+	optype_t op_type;
+
+	flowtype_t flow_type;
+	ast_t cond;
+	ast_t t;
+	ast_t f;
+} *astflow_t;
+
+
 
 
 
@@ -97,5 +108,6 @@ ast_t ast_newref(char *s);
 ast_t ast_newassign(char *s, ast_t v);
 ast_t ast_newnum(numtype_t type, char *str);
 ast_t ast_newcmp(cmptype_t ct, ast_t l, ast_t r);
+ast_t ast_newflow(flowtype_t ft, ast_t c, ast_t t, ast_t f);
 explist_t ast_newexplist(ast_t exp, explist_t next);
 void ast_delete(ast_t a);

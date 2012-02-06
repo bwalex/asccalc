@@ -25,7 +25,7 @@
 
 %token EOL
 
-%token IF THEN ELSE WHILE DO FUNCTION ENDFUNCTION
+%token IF THEN ELSE FI WHILE DO DONE FUNCTION ENDFUNCTION
 
 %nonassoc <ct> CMP
 
@@ -38,7 +38,7 @@
 %nonassoc '!'
 
 
-%type <a> exp stmt
+%type <a> exp stmt list
 %type <el> explist
 
 %start clist
@@ -46,8 +46,16 @@
 %%
 
 
-stmt:     exp
+stmt:     IF exp THEN list FI             { $$ = ast_newflow(FLOW_IF, $2, $4, NULL); }
+        | IF exp THEN list ELSE list FI   { $$ = ast_newflow(FLOW_IF, $2, $4, $6); }
+        | exp
 ;
+
+
+list:     /* nothing */   { $$ = NULL; }
+        | stmt ';' list   { if ($3 == NULL) $$ = $1; else $$ = ast_new(OP_LISTING, $1,$3); }
+;
+
 
 clist: /* nothing */
         | clist stmt EOL { go($2); }
