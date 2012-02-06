@@ -1,7 +1,7 @@
 asccalc - A Simple Console Calculator
 
-Pretty much an experimental console calculator - WIP.
-Better description to come soon.
+Pretty much a fully featured console calculator. One of the few that makes
+it easy to use logic operations and different bases.
 
 
 Functionality:
@@ -27,6 +27,24 @@ xor      same as ^
 >>       Logical shift right (arithmetic shift for negative numbers)
 ```
 
+
+Numbers
+----------
+Numbers can be expressed in many different ways. Here are some examples:
+```
+0xFF
+0b010101
+5
+0d5
+0755
+5.71
+5.71E-5
+5.71p
+```
+
+As the last example shows, several SI suffixes are available, with their
+usual meaning:
+a,f,p,n,u,m,k,M,G,T,P,Ey
 
 
 
