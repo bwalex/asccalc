@@ -371,8 +371,7 @@ eval(ast_t a, hashtable_t vartbl)
 		var = NULL;
 		if (vartbl != NULL)
 			var = ext_varlookup(vartbl, ((astassign_t) a)->name, 0);
-
-		if (var == NULL)
+		else
 			var = varlookup(((astassign_t) a)->name, 0);
 
 		if (var != NULL) {
