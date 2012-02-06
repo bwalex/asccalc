@@ -9,6 +9,10 @@
 # include "ast.h"
 # include "calc.h"
 # include "calc.tab.h"
+# define YY_INPUT(buf,result,max_size) (result = yy_input_helper(buf, max_size))
+
+int linecont = 0;
+int nesting = 0;
 %}
 
 /* float exponent */
@@ -57,15 +61,15 @@ SUFFIX	([afpnumkMGTPE])
 "<<"    { return SHL; }
 
  /* keywords */
-"if"    { return IF; }
-"then"  { return THEN; }
-"else"  { return ELSE; }
-"fi"    { return FI; }
-"while" { return WHILE; }
-"do"    { return DO; }
-"done"  { return DONE; }
-"function" { return FUNCTION; }
-"endfunction" { return ENDFUNCTION; }
+"if"          { ++nesting; return IF; }
+"then"        {            return THEN; }
+"else"        {            return ELSE; }
+"fi"          { --nesting; return FI; }
+"while"       { ++nesting; return WHILE; }
+"do"          {            return DO; }
+"done"        { --nesting; return DONE; }
+"function"    { ++nesting; return FUNCTION; }
+"endfunction" { --nesting; return ENDFUNCTION; }
 
  /* Commands */
 ^"mode "[bdhox]$ { mode_switch(yytext[5]); /* XXX */ printf("mode switch to %c\n", yytext[5]); }
@@ -89,10 +93,11 @@ SUFFIX	([afpnumkMGTPE])
 (0d)?[0-9]+"."[0-9]*{EXP}?{SUFFIX}? |
 (0d)?"."?[0-9]+{EXP}?{SUFFIX}?  { yylval.a = ast_newnum(NUM_FP, yytext); return NUM; }
 
-"//".*  
+"#".*   /* ignore comment */
+"//".*  /* ignore comment */
 [ \t]   /* ignore white space */ 
-\\\n    printf("... "); /* ignore line continuation */
-"\n"    { return EOL; }
+\\\n    { linecont = 1; } /* ignore line continuation */
+"\n"    { linecont = 0; if (nesting == 0) return EOL; }
 
 .       { printf("Mystery character: %c\n", yytext[0]); return yytext[0]; }
 %%

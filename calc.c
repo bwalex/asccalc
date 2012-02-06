@@ -48,6 +48,14 @@
 #include "safe_mem.h"
 #include "lex.yy.h"
 
+extern int nesting;
+extern int linecont;
+
+EditLine *el;
+History *hist;
+HistEvent ev;
+
+
 void
 yyerror(const char *s, ...)
 {
@@ -58,20 +66,52 @@ yyerror(const char *s, ...)
 	fprintf(stderr, "%d: error: ", yylineno);
 	vfprintf(stderr, s, ap);
 	fprintf(stderr, "\n");
+
+	nesting = 0;
 }
+
 
 static
 char *
 prompt(EditLine *el)
 {
-	int *lcont;
+	static char buf[1024];
+	int i;
 
-	el_get(el, EL_CLIENTDATA, &lcont);
-	if (*lcont)
-		return "... ";
-	else
+	if (nesting || linecont) {
+		snprintf(buf, sizeof(buf), "..");
+		for (i = 0; i < nesting; i++)
+			strcat(buf, ".");
+		
+		strcat(buf, " ");
+		return buf;
+	} else {
 		return "-> ";
+	}
 }
+
+
+int
+yy_input_helper(char *buf, size_t max_size)
+{
+	char *s;
+	int count;
+
+	s = el_gets(el, &count);
+	if (count <= 0 || s == NULL)
+		return 0;
+
+	if (count > max_size) {
+		el_push(el, (char *)(s + max_size));
+		count = max_size;
+	}
+
+	memcpy(buf, s, count);
+	history(hist, &ev, H_ENTER, s);
+
+	return count;
+}
+
 
 int
 main(int argc, char *argv[])
@@ -79,13 +119,8 @@ main(int argc, char *argv[])
 	YY_BUFFER_STATE bp;
 	char *s;
 	char *progname = argv[0];
-	EditLine *el;
-	History *hist;
-	HistEvent ev;
+
 	int count, error;
-	int linecont, linecontchar;
-	char *contbuf;
-	size_t contbufsz;
 	
 	varinit();
 	num_init();
@@ -98,70 +133,13 @@ main(int argc, char *argv[])
 	el_set(el, EL_SIGNAL, 1);
 	el_set(el, EL_HIST, history, hist);
 	el_set(el, EL_EDITOR, "emacs");
-	el_set(el, EL_CLIENTDATA, &linecontchar);
 
 	printf("ascalc - A Simple Console Calculator\n");
 	printf("Copyright (c) 2012 Alex Hornung\n");
 	printf("Type 'help' for available commands\n");
 	printf("\n");
 	
-	linecont = 0;
-	linecontchar = 0;
-	contbuf = NULL;
-	contbufsz = 0;
-	for (;;) {
-		s = el_gets(el, &count);
-		if (count <= 0)
-			continue;
-
-		/*
-		 * XXX: This continuation magic is hideous. It really really needs some
-		 *      love.
-		 *
-		 * NOTES:
-		 *      count -2 because the last character is \n.
-		 *      linecont specifies whether line continuation is currently in use.
-		 *      linecontchar specifies whether the current line is still to be
-		 *      continued; i.e. it ended with the line continuation character \.
-		 */
-		if (s[count-2] == '\\') {
-			if ((contbuf = realloc(contbuf, contbufsz + count + 2)) == NULL) {
-				yyerror("ENOMEM");
-				exit(1);
-			}
-
-			linecontchar = 1;
-			s[count-2] = '\0';
-			linecont = 1;
-
-		} else {
-			linecontchar = 0;
-		}
-
-		if (linecont) {
-			contbuf[contbufsz] = '\0';
-			sprintf(contbuf + contbufsz, "%s", s);
-			contbufsz += count-2;
-			if (linecontchar)
-				continue;
-			else
-				s = contbuf;
-		}
-
-		history(hist, &ev, H_ENTER, s);
-
-		bp = yy_scan_string(s);
-		yy_switch_to_buffer(bp);
-		error = yyparse();
-		yy_delete_buffer(bp);
-
-		if (linecont && !linecontchar) {
-			free(contbuf);
-			contbuf = NULL;
-			contbufsz = 0;
-			linecont = 0;
-		}
-	}
+	yyparse();
 
 	history_end(hist);
 	el_end(el);
@@ -196,19 +174,32 @@ eval(ast_t a)
 		
 	case OP_FLOW:
 		af = (astflow_t)a;
-		c = eval(af->cond);
-		if (c == NULL)
-			return NULL;
-		if (!num_is_zero(c)) {
-			if (af->t == NULL)
-				n = num_new_const_zero(N_TEMP);
-			else
+		switch (af->flow_type) {
+		case FLOW_IF:
+			c = eval(af->cond);
+			if (c == NULL)
+				return NULL;
+			if (!num_is_zero(c)) {
+				if (af->t == NULL)
+					n = num_new_const_zero(N_TEMP);
+				else
+					n = eval(af->t);
+			} else {
+				if (af->f == NULL)
+					n = num_new_const_zero(N_TEMP);
+				else
+					n = eval(af->f);
+			}
+			break;
+
+		case FLOW_WHILE:
+			n = num_new_const_zero(N_TEMP);
+			c = eval(af->cond);
+			while (!num_is_zero(c)) {
 				n = eval(af->t);
-		} else {
-			if (af->f == NULL)
-				n = num_new_const_zero(N_TEMP);
-			else
-				n = eval(af->f);
+				c = eval(af->cond);
+			}
+			break;
 		}
 		break;
 		
