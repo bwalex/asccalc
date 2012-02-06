@@ -236,6 +236,7 @@ quit         Exits the program
 Builtin functions
 ---------
 Check with the 'lsfn' commands for the most up-to-date list.
+
 ```
 sqrt(a)       Square Root of a
 cbrt(a)       Cubic Root of a
