@@ -27,7 +27,7 @@ all: parser lexer
 	$(CC) -c $(CFLAGS) safe_mem.c
 	$(CC) -c $(CFLAGS) calc.c
 
-	$(CC) -o calc $(CFLAGS) calc.tab.o lex.yy.o num.o ast.o var.o func.o hashtable.o safe_mem.o calc.o $(LIBS)
+	$(CC) -o asccalc $(CFLAGS) calc.tab.o lex.yy.o num.o ast.o var.o func.o hashtable.o safe_mem.o calc.o $(LIBS)
 
 parser:
 	bison -d calc.y
