@@ -36,12 +36,13 @@
 #include <gmp.h>
 #include <mpfr.h>
 
+#include "hashtable.h"
+
 #include "optype.h"
 #include "num.h"
 #include "var.h"
 #include "ast.h"
 #include "calc.h"
-#include "hashtable.h"
 #include "safe_mem.h"
 
 static hashtable_t vartbl;
@@ -73,27 +74,25 @@ varhashdtor(hashobj_t obj)
 	assert(obj != NULL);
 
 	if ((var = obj->data) != NULL) {
-		num_delete(var->v);
+		if (!var->no_numfree)
+			num_delete(var->v);
 		free_safe_mem(BUCKET_VAR, var);
 	}
 }
 
 
-int
-varinit(void)
+hashtable_t
+ext_varinit(unsigned int size)
 {
-	vartbl = hashtable_new(9901, NULL, varhashdtor);
-	_initconstants();
-
-	return 0;
+	return hashtable_new(size, NULL, varhashdtor); 
 }
 
 
 var_t
-varlookup(const char *s, int alloc)
+ext_varlookup(hashtable_t vtbl, const char *s, int alloc)
 {
 	var_t var;
-	hashobj_t obj = hashtable_lookup(vartbl, s, alloc);
+	hashobj_t obj = hashtable_lookup(vtbl, s, alloc);
 
 	if (obj == NULL)
 		return NULL;
@@ -106,9 +105,28 @@ varlookup(const char *s, int alloc)
 		exit(1);
 	}
 
+	var->no_numfree = 0;
 	obj->data = var;
 
 	return var;
+	
+}
+
+
+int
+varinit(void)
+{
+	vartbl = ext_varinit(9901);
+	_initconstants();
+
+	return 0;
+}
+
+
+var_t
+varlookup(const char *s, int alloc)
+{
+	return ext_varlookup(vartbl, s, alloc);
 }
 
 

@@ -37,17 +37,20 @@
 #include <gmp.h>
 #include <mpfr.h>
 
+#include "hashtable.h"
+
 #include "optype.h"
 #include "num.h"
 #include "var.h"
 #include "ast.h"
 #include "calc.h"
 #include "safe_mem.h"
-#include "hashtable.h"
 #include "func.h"
 
 static hashtable_t funtbl;
 
+
+static
 num_t
 builtin_mpfr_fun_one_arg(void *priv, char *s, int nargs, num_t * argv)
 {
@@ -64,6 +67,7 @@ builtin_mpfr_fun_one_arg(void *priv, char *s, int nargs, num_t * argv)
 }
 
 
+static
 num_t
 builtin_mpfr_fun_one_arg_nornd(void *priv, char *s, int nargs, num_t * argv)
 {
@@ -80,6 +84,7 @@ builtin_mpfr_fun_one_arg_nornd(void *priv, char *s, int nargs, num_t * argv)
 }
 
 
+static
 num_t
 builtin_mpfr_fun_two_arg(void *priv, char *s, int nargs, num_t * argv)
 {
@@ -97,6 +102,7 @@ builtin_mpfr_fun_two_arg(void *priv, char *s, int nargs, num_t * argv)
 }
 
 
+static
 num_t
 builtin_mpfr_fun_two_arg_ul(void *priv, char *s, int nargs, num_t * argv)
 {
@@ -120,6 +126,7 @@ builtin_mpfr_fun_two_arg_ul(void *priv, char *s, int nargs, num_t * argv)
 }
 
 
+static
 num_t
 builtin_mpz_fun_one_arg(void *priv, char *s, int nargs, num_t * argv)
 {
@@ -136,6 +143,7 @@ builtin_mpz_fun_one_arg(void *priv, char *s, int nargs, num_t * argv)
 }
 
 
+static
 num_t
 builtin_mpz_fun_one_arg_ul(void *priv, char *s, int nargs, num_t * argv)
 {
@@ -158,6 +166,7 @@ builtin_mpz_fun_one_arg_ul(void *priv, char *s, int nargs, num_t * argv)
 }
 
 
+static
 num_t
 builtin_mpz_fun_two_arg(void *priv, char *s, int nargs, num_t * argv)
 {
@@ -175,6 +184,7 @@ builtin_mpz_fun_two_arg(void *priv, char *s, int nargs, num_t * argv)
 }
 
 
+static
 num_t
 builtin_mpz_fun_two_arg_ul(void *priv, char *s, int nargs, num_t * argv)
 {
@@ -199,12 +209,14 @@ builtin_mpz_fun_two_arg_ul(void *priv, char *s, int nargs, num_t * argv)
 
 
 num_t
-call_builtin(char *s, explist_t l)
+call_fun(char *s, explist_t l)
 {
 	func_t fn;
 	explist_t p;
+	namelist_t pn;
 	num_t *args;
 	int nargs, i;
+	var_t v;
 	num_t r;
 
 	nargs = 0;
@@ -237,10 +249,24 @@ call_builtin(char *s, explist_t l)
 
 	i = 0;
 	for (p = l; p != NULL; p = p->next) {
-		args[i++] = eval(p->ast);
+	  args[i++] = eval(p->ast, NULL);
 	}
 
-	r = fn->fn(fn->priv, s, nargs, args);
+	if (fn->builtin) {
+		r = fn->fn(fn->priv, s, nargs, args);
+	} else {
+		hashtable_t argtbl = ext_varinit(121);
+		
+		for (pn = fn->namelist, i = 0; pn != NULL; pn = pn->next, i++) {
+			v = ext_varlookup(argtbl, pn->name, 1);
+			v->v = args[i];
+			v->no_numfree = 1;
+		}
+
+		r = eval(fn->ast, argtbl);
+
+		hashtable_destroy(argtbl);
+	}
 
 	free_safe_mem(BUCKET_MANUAL, args);
 
@@ -248,6 +274,7 @@ call_builtin(char *s, explist_t l)
 }
 
 
+static
 num_t
 builtin_min(void *priv, char *s, int nargs, num_t * argv)
 {
@@ -266,6 +293,7 @@ builtin_min(void *priv, char *s, int nargs, num_t * argv)
 }
 
 
+static
 num_t
 builtin_max(void *priv, char *s, int nargs, num_t * argv)
 {
@@ -284,6 +312,7 @@ builtin_max(void *priv, char *s, int nargs, num_t * argv)
 }
 
 
+static
 num_t
 builtin_avg(void *priv, char *s, int nargs, num_t * argv)
 {
@@ -380,6 +409,36 @@ _initbuiltin(void)
 	}
 }
 
+
+void
+user_newfun(char *name, namelist_t nl, ast_t a)
+{
+	func_t fn;
+	namelist_t p;
+	int i;
+
+	i = 0;
+	for (p = nl; p != NULL; p = p->next)
+		++i;
+
+	if ((fn = funlookup(name, 0)) != NULL) {
+		  ast_delete(fn->ast);
+		  namelist_delete(fn->namelist);
+	} else {
+		fn = funlookup(name, 1);
+	}
+	
+	fn = funlookup(name, 1);
+	fn->priv = NULL;
+	fn->fn = NULL;
+	fn->minargs = fn->maxargs = i;
+	fn->builtin = 0;
+
+	fn->namelist = nl;
+	fn->ast = a;
+
+	printf("Defined function '%s'\n", name);
+}
 
 
 static void
@@ -481,7 +540,7 @@ funlist(void)
 	printf("Functions:\n");
 	for (n = 0; n < i.count; n++) {
 		f = funlookup(i.s[n], 0);
-		printf("%s%s\n", i.s[n], f->builtin ? "\t\t [builtin]" : "");
+		printf("%s%s\n", i.s[n], f->builtin ? "\t\t [builtin]" : "\t\t [user-defined]");
 	}
 }
 

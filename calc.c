@@ -39,6 +39,8 @@
 
 #include <histedit.h>
 
+#include "hashtable.h"
+
 #include "optype.h"
 #include "num.h"
 #include "var.h"
@@ -73,7 +75,7 @@ yyerror(const char *s, ...)
 
 static
 char *
-prompt(EditLine *el)
+prompt(EditLine *_el)
 {
 	static char buf[1024];
 	int i;
@@ -84,24 +86,25 @@ prompt(EditLine *el)
 			strcat(buf, ".");
 		
 		strcat(buf, " ");
-		return buf;
 	} else {
-		return "-> ";
+		snprintf(buf, sizeof(buf), "-> ");
 	}
+
+	return buf;
 }
 
 
 int
 yy_input_helper(char *buf, size_t max_size)
 {
-	char *s;
+	const char *s;
 	int count;
 
 	s = el_gets(el, &count);
 	if (count <= 0 || s == NULL)
 		return 0;
 
-	if (count > max_size) {
+	if ((size_t)count > max_size) {
 		el_push(el, (char *)(s + max_size));
 		count = max_size;
 	}
@@ -116,11 +119,7 @@ yy_input_helper(char *buf, size_t max_size)
 int
 main(int argc, char *argv[])
 {
-	YY_BUFFER_STATE bp;
-	char *s;
 	char *progname = argv[0];
-
-	int count, error;
 	
 	varinit();
 	num_init();
@@ -147,133 +146,6 @@ main(int argc, char *argv[])
 	return 0;
 }
 
-num_t
-eval(ast_t a)
-{
-	astcmp_t acmp;
-	astflow_t af;
-	num_t n, c, l, r;
-	var_t var;
-
-	assert(a != NULL);
-
-	switch (a->op_type) {
-	case OP_CMP:
-		acmp = (astcmp_t)a;
-		l = eval(acmp->l);
-		r = eval(acmp->r);
-		if (l == NULL || r == NULL)
-			return NULL;
-		n = num_cmp(acmp->cmp_type, l, r);
-		break;
-
-	case OP_LISTING:
-		eval(a->l);
-		n = eval(a->r);
-		break;
-		
-	case OP_FLOW:
-		af = (astflow_t)a;
-		switch (af->flow_type) {
-		case FLOW_IF:
-			c = eval(af->cond);
-			if (c == NULL)
-				return NULL;
-			if (!num_is_zero(c)) {
-				if (af->t == NULL)
-					n = num_new_const_zero(N_TEMP);
-				else
-					n = eval(af->t);
-			} else {
-				if (af->f == NULL)
-					n = num_new_const_zero(N_TEMP);
-				else
-					n = eval(af->f);
-			}
-			break;
-
-		case FLOW_WHILE:
-			n = num_new_const_zero(N_TEMP);
-			c = eval(af->cond);
-			while (!num_is_zero(c)) {
-				n = eval(af->t);
-				c = eval(af->cond);
-			}
-			break;
-		}
-		break;
-		
-	case OP_ADD:
-	case OP_SUB:
-	case OP_MUL:
-	case OP_DIV:
-	case OP_MOD:
-	case OP_POW:
-		l = eval(a->l);
-		r = eval(a->r);
-		if (l == NULL || r == NULL)
-			return NULL;
-		n = num_float_two_op(a->op_type, l, r);
-		break;
-
-	case OP_AND:
-	case OP_OR:
-	case OP_XOR:
-	case OP_SHR:
-	case OP_SHL:
-		l = eval(a->l);
-		r = eval(a->r);
-		if (l == NULL || r == NULL)
-			return NULL;
-		n = num_int_two_op(a->op_type, l, r);
-		break;
-
-	case OP_UMINUS:
-		l = eval(a->l);
-		if (l == NULL)
-			return NULL;
-		n = num_float_one_op(a->op_type, l);
-		break;
-
-	case OP_UINV:
-	case OP_FAC:
-		l = eval(a->l);
-		if (l == NULL)
-			return NULL;
-		n = num_int_one_op(a->op_type, l);
-		break;
-
-	case OP_NUM:
-		n = ((astnum_t) a)->num;
-		break;
-
-	case OP_VARREF:
-		var = varlookup(((astref_t) a)->name, 0);
-		if (var == NULL) {
-			yyerror("Variable '%s' not defined",
-			    ((astref_t) a)->name);
-			return NULL;
-		}
-		n = var->v;
-		break;
-
-	case OP_VARASSIGN:
-		l = eval(((astassign_t)a)->v);
-		if (l == NULL)
-			return NULL;
-		n = ((astassign_t) a)->var->v = num_new_fp(0, l);
-		break;
-
-	case OP_CALL:
-		n = call_builtin(((astcall_t) a)->name, ((astcall_t) a)->l);
-		break;
-
-	default:
-		yyerror("Unknown op type %d", a->op_type);
-	}
-
-	return n;
-}
 
 static char mode = 'd';
 
@@ -330,7 +202,7 @@ go(ast_t a)
 	num_t ans;
 
 	//printf("Allocations: %d\n", nallocations);
-	ans = eval(a);
+	ans = eval(a, NULL);
 
 	if (ans == NULL)
 		return;

@@ -47,11 +47,16 @@ typedef struct func
 	int minargs;
 	int maxargs;
 	int builtin;
+
+	namelist_t namelist;
+	ast_t ast;
 } *func_t;
 
 
 
 int funinit(void);
 func_t funlookup(const char *s, int alloc);
-num_t call_builtin(char *s, explist_t l);
+num_t call_fun(char *s, explist_t l);
 void funlist(void);
+void user_newfun(char *name, namelist_t nl, ast_t a);
+

@@ -37,11 +37,14 @@
 #include <gmp.h>
 #include <mpfr.h>
 
+#include "hashtable.h"
+
 #include "optype.h"
 #include "num.h"
 #include "var.h"
 #include "ast.h"
 #include "calc.h"
+#include "func.h"
 #include "safe_mem.h"
 
 ast_t
@@ -117,10 +120,8 @@ ast_newassign(char *s, ast_t v)
 	}
 
 	a->op_type = OP_VARASSIGN;
-	a->var = varlookup(s, 1);
+	a->name = s;
 	a->v = v;
-
-	free(s);
 
 	return (ast_t) a;
 }
@@ -199,6 +200,23 @@ ast_newexplist(ast_t exp, explist_t next)
 }
 
 
+namelist_t
+ast_newnamelist(char *s, namelist_t next)
+{
+	namelist_t nl;
+
+	if ((nl = alloc_safe_mem(BUCKET_AST, sizeof(*nl))) == NULL) {
+		yyerror("ENOMEM");
+		exit(1);
+	}
+
+	nl->name = s;
+	nl->next = next;
+
+	return nl;
+}
+
+
 static
 void
 explist_delete(explist_t e)
@@ -211,6 +229,175 @@ explist_delete(explist_t e)
 		ast_delete(c->ast);
 		free_safe_mem(BUCKET_AST, c);
 	}
+}
+
+
+void
+namelist_delete(namelist_t e)
+{
+	namelist_t c;
+
+	while (e != NULL) {
+		c = e;
+		e = e->next;
+		free(c->name);
+		free_safe_mem(BUCKET_AST, c);
+	}
+}
+
+
+
+num_t
+eval(ast_t a, hashtable_t vartbl)
+{
+	astcmp_t acmp;
+	astflow_t af;
+	num_t n, c, l, r;
+	var_t var;
+
+	assert(a != NULL);
+
+	switch (a->op_type) {
+	case OP_CMP:
+		acmp = (astcmp_t)a;
+		l = eval(acmp->l, vartbl);
+		r = eval(acmp->r, vartbl);
+		if (l == NULL || r == NULL)
+			return NULL;
+		n = num_cmp(acmp->cmp_type, l, r);
+		break;
+
+	case OP_LISTING:
+		eval(a->l, vartbl);
+		n = eval(a->r, vartbl);
+		break;
+		
+	case OP_FLOW:
+		af = (astflow_t)a;
+		switch (af->flow_type) {
+		case FLOW_IF:
+			c = eval(af->cond, vartbl);
+			if (c == NULL)
+				return NULL;
+			if (!num_is_zero(c)) {
+				if (af->t == NULL)
+					n = num_new_const_zero(N_TEMP);
+				else
+					n = eval(af->t, vartbl);
+			} else {
+				if (af->f == NULL)
+					n = num_new_const_zero(N_TEMP);
+				else
+					n = eval(af->f, vartbl);
+			}
+			break;
+
+		case FLOW_WHILE:
+			n = num_new_const_zero(N_TEMP);
+			c = eval(af->cond, vartbl);
+			while (!num_is_zero(c)) {
+				n = eval(af->t, vartbl);
+				c = eval(af->cond, vartbl);
+			}
+			break;
+		}
+		break;
+		
+	case OP_ADD:
+	case OP_SUB:
+	case OP_MUL:
+	case OP_DIV:
+	case OP_MOD:
+	case OP_POW:
+		l = eval(a->l, vartbl);
+		r = eval(a->r, vartbl);
+		if (l == NULL || r == NULL)
+			return NULL;
+		n = num_float_two_op(a->op_type, l, r);
+		break;
+
+	case OP_AND:
+	case OP_OR:
+	case OP_XOR:
+	case OP_SHR:
+	case OP_SHL:
+		l = eval(a->l, vartbl);
+		r = eval(a->r, vartbl);
+		if (l == NULL || r == NULL)
+			return NULL;
+		n = num_int_two_op(a->op_type, l, r);
+		break;
+
+	case OP_UMINUS:
+		l = eval(a->l, vartbl);
+		if (l == NULL)
+			return NULL;
+		n = num_float_one_op(a->op_type, l);
+		break;
+
+	case OP_UINV:
+	case OP_FAC:
+		l = eval(a->l, vartbl);
+		if (l == NULL)
+			return NULL;
+		n = num_int_one_op(a->op_type, l);
+		break;
+
+	case OP_NUM:
+		n = ((astnum_t) a)->num;
+		break;
+
+	case OP_VARREF:
+		var = NULL;
+		if (vartbl != NULL)
+			var = ext_varlookup(vartbl, ((astref_t) a)->name, 0);
+		
+		if (var == NULL) {
+			var = varlookup(((astref_t) a)->name, 0);
+			if (var == NULL) {
+				yyerror("Variable '%s' not defined",
+					((astref_t) a)->name);
+				return NULL;
+			}
+		}
+		n = var->v;
+		break;
+
+	case OP_VARASSIGN:
+		l = eval(((astassign_t)a)->v, vartbl);
+		if (l == NULL)
+			return NULL;
+
+		var = NULL;
+		if (vartbl != NULL)
+			var = ext_varlookup(vartbl, ((astassign_t) a)->name, 0);
+
+		if (var == NULL)
+			var = varlookup(((astassign_t) a)->name, 0);
+
+		if (var != NULL) {
+			/* dispose of old var first */
+			if (!var->no_numfree)
+				num_delete(var->v);
+		} else {
+			if (vartbl != NULL)
+				var = ext_varlookup(vartbl, ((astassign_t) a)->name, 1);
+			else
+				var = varlookup(((astassign_t) a)->name, 1);
+		}
+		
+		n = var->v = num_new_fp(0, l);
+		break;
+
+	case OP_CALL:
+		n = call_fun(((astcall_t) a)->name, ((astcall_t) a)->l);
+		break;
+
+	default:
+		yyerror("Unknown op type %d", a->op_type);
+	}
+
+	return n;
 }
 
 
@@ -287,6 +474,7 @@ ast_delete(ast_t a)
 	case OP_VARASSIGN:
 		aa = (astassign_t)a;
 		ast_delete(aa->v);
+		free(aa->name);
 		break;
 
 	default:

@@ -57,7 +57,7 @@ typedef struct astassign
 {
 	optype_t op_type;
 
-	var_t var;
+	char *name;
 	ast_t v;
 } *astassign_t;
 
@@ -77,6 +77,13 @@ typedef struct explist
 	ast_t ast;
 	struct explist *next;
 } *explist_t;
+
+
+typedef struct namelist
+{
+	char *name;
+	struct namelist *next;
+} *namelist_t;
 
 
 typedef struct astcall
@@ -110,4 +117,7 @@ ast_t ast_newnum(numtype_t type, char *str);
 ast_t ast_newcmp(cmptype_t ct, ast_t l, ast_t r);
 ast_t ast_newflow(flowtype_t ft, ast_t c, ast_t t, ast_t f);
 explist_t ast_newexplist(ast_t exp, explist_t next);
+namelist_t ast_newnamelist(char *s, namelist_t next);
+void namelist_delete(namelist_t e);
+num_t eval(ast_t a, hashtable_t vartbl);
 void ast_delete(ast_t a);

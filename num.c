@@ -37,6 +37,8 @@
 #include <gmp.h>
 #include <mpfr.h>
 
+#include "hashtable.h"
+
 #include "optype.h"
 #include "num.h"
 #include "var.h"

@@ -36,8 +36,11 @@
 
 extern int yylineno;
 void go(ast_t a);
-num_t eval(ast_t a);
 void test_print_num(num_t n);
 void yyerror(const char *s, ...);
 void free_temp_bucket(void);
 void help(void);
+int yy_input_helper(char *buf, size_t max_size);
+int yyparse(void);
+void mode_switch(char new_mode);
+

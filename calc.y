@@ -6,17 +6,22 @@
 #include <gmp.h>
 #include <mpfr.h>
 
+#include "hashtable.h"
+
 #include "optype.h"
 #include "num.h"
 #include "var.h"
 #include "ast.h"
+#include "func.h"
 #include "calc.h"
+#include "lex.yy.h"
 %}
 
 %union {
   ast_t a;
   char *s;
   explist_t el;
+  namelist_t nl;
   cmptype_t ct;
 }
 
@@ -40,6 +45,7 @@
 
 %type <a> exp stmt list
 %type <el> explist
+%type <nl> namelist
 
 %start clist
 
@@ -63,6 +69,7 @@ clist: /* nothing */
         | clist stmt EOL { go($2); }
         | clist exp EOL { go($2); }
         | clist exp ';' EOL { go($2); }
+        | clist FUNCTION NAME '(' namelist ')' '=' list ENDFUNCTION EOL { user_newfun($3, $5, $8); }
         | error EOL  { yyerrok;  }/* on error, skip until end of line */
 ;
 
@@ -95,9 +102,9 @@ explist: exp        { $$ = ast_newexplist($1, NULL); } /* last element */
 ;
 
 
- //namelist: name        { $$ = newnamelist($1, NULL); } /* last element */
- // | name ',' namelist  { $$ = newnamelist($1, $3);   }
- //;
+namelist: NAME        { $$ = ast_newnamelist($1, NULL); } /* last element */
+ | NAME ',' namelist  { $$ = ast_newnamelist($1, $3);   }
+;
 
 %%
 

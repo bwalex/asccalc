@@ -29,10 +29,14 @@
 
 typedef struct var
 {
+	int no_numfree;
 	num_t v;
 } *var_t;
 
 
+hashtable_t ext_varinit(unsigned int size);
+var_t ext_varlookup(hashtable_t vtbl, const char *s, int alloc);
 int varinit(void);
 var_t varlookup(const char *s, int alloc);
 void varlist(void);
+

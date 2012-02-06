@@ -3,10 +3,12 @@
 # include <stdio.h>
 # include <gmp.h>
 # include <mpfr.h>
+# include "hashtable.h"
 # include "optype.h"
 # include "num.h"
 # include "var.h"
 # include "ast.h"
+# include "func.h"
 # include "calc.h"
 # include "calc.tab.h"
 # define YY_INPUT(buf,result,max_size) (result = yy_input_helper(buf, max_size))
