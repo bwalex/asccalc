@@ -46,7 +46,7 @@ Numbers can be expressed in many different ways. Here are some examples:
 As the last example shows, several SI suffixes are available, with their
 usual meaning:
 
-    a,f,p,n,u,m,k,M,G,T,P,Ey
+    a,f,p,n,u,m,k,M,G,T,P,E
 
 
 
@@ -312,4 +312,7 @@ To just use a binary package:
 
 Build
 ------------
-Just type 'make'.
+Just type
+
+    make
+
