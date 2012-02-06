@@ -31,6 +31,7 @@ xor      same as ^
 Numbers
 ----------
 Numbers can be expressed in many different ways. Here are some examples:
+
 ```
 0xFF
 0b010101
@@ -44,7 +45,8 @@ Numbers can be expressed in many different ways. Here are some examples:
 
 As the last example shows, several SI suffixes are available, with their
 usual meaning:
-a,f,p,n,u,m,k,M,G,T,P,Ey
+
+    a,f,p,n,u,m,k,M,G,T,P,Ey
 
 
 
