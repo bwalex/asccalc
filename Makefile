@@ -36,7 +36,7 @@ lexer: parser
 	flex --header-file=lex.yy.h calc.l 
 
 clean:
-	rm -f *.o calc
+	rm -f *.o asccalc
 
 realclean: clean
 	rm -f calc.tab.c calc.tab.h
