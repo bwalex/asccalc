@@ -33,6 +33,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <assert.h>
+#include <errno.h>
 
 #include "safe_mem.h"
 
@@ -88,12 +89,23 @@ _alloc_safe_mem(int bucket, size_t req_sz, const char *file, int line)
 	assert(bucket < SAFEMEM_NBUCKETS);
 
 	alloc_sz = req_sz + sizeof(*hdr) + sizeof(*tail);
-	if ((mem = malloc(alloc_sz)) == NULL)
+	if ((mem = malloc(alloc_sz)) == NULL) {
+#ifdef DEBUG
+		fprintf(stderr, "_alloc_safe_mem: %s:%d, malloc(%ju) == NULL: %s\n",
+			file, line, alloc_sz, strerror(errno));
+#endif
 		return NULL;
+	}
 
 	if (mlock(mem, alloc_sz) < 0) {
+#ifdef DEBUG
+		fprintf(stderr, "_alloc_safe_mem: %s:%d, mlock(%p) < 0: %s\n",
+			file, line, mem, strerror(errno));
+#endif
+#ifdef ENFORCE_MLOCK
 		free(mem);
 		return NULL;
+#endif
 	}
 
 	memset(mem, 0, alloc_sz);
@@ -155,7 +167,7 @@ _free_safe_mem(int bucket, void *mem_ptr, const char *file, int line)
 	}
 
 	/*
-	 * Integrity checks 
+	 * Integrity checks
 	 */
 	if ((memcmp(hdr->sig, "SAFEMEM\0", 8) != 0) ||
 	    (memcmp(tail->sig, "SAFEMEM\0", 8) != 0)) {
@@ -186,7 +198,10 @@ _free_safe_mem(int bucket, void *mem_ptr, const char *file, int line)
 	memset(mem, 0, alloc_sz);
 
 	--nallocations;
-	
+
+#if 0
+	munlock(mem, alloc_sz);
+#endif
 	free(mem);
 }
 
