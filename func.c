@@ -383,6 +383,8 @@ struct builtin_funcs
   { "remfac"    , mpz_remove     , builtin_mpz_fun_two_arg        , 2, 2     },
   { "bin"       , mpz_bin_ui     , builtin_mpz_fun_two_arg_ul     , 2, 2     },
   { "fib"       , mpz_fib_ui     , builtin_mpz_fun_one_arg_ul     , 1, 1     },
+  { "invert"    , mpz_invert     , builtin_mpz_fun_two_arg        , 2, 2     },
+  { "inv"       , mpz_invert     , builtin_mpz_fun_two_arg        , 2, 2     },
   /* mpz_hamdist ? */
 
   { "min"       , NULL           , builtin_min                    , 2, 1000  },
