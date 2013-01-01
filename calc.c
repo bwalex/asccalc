@@ -134,7 +134,7 @@ main(int argc, char *argv[])
 	el_set(el, EL_EDITOR, "emacs");
 
 	printf("ascalc - A Simple Console Calculator\n");
-	printf("Copyright (c) 2012 Alex Hornung\n");
+	printf("Copyright (c) 2012-2013 Alex Hornung\n");
 	printf("Type 'help' for available commands\n");
 	printf("\n");
 
