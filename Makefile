@@ -14,7 +14,7 @@ WARNFLAGS= -Wsystem-headers -Wall -W -Wno-unused-parameter \
 CC= gcc
 CFLAGS= -O0 -g3 $(WARNFLAGS)
 LDFLAGS=
-LIBS= -lm -lgmp -lmpfr -ledit -ltermcap
+LIBS= -lm -lgmp -lmpfr -ledit -lncurses
 
 all: parser lexer
 	$(CC) -c $(CFLAGS) calc.tab.c

@@ -77,7 +77,7 @@ builtin_mpfr_fun_one_arg_nornd(void *priv, char *s, int nargs, num_t * argv)
 
 	r = num_new_fp(N_TEMP, NULL);
 	a = num_new_fp(N_TEMP, argv[0]);
-	
+
 	fn(F(r), F(a));
 
 	return r;
@@ -95,7 +95,7 @@ builtin_mpfr_fun_two_arg(void *priv, char *s, int nargs, num_t * argv)
 	r = num_new_fp(N_TEMP, NULL);
 	a = num_new_fp(N_TEMP, argv[0]);
 	b = num_new_fp(N_TEMP, argv[1]);
-	
+
 	fn(F(r), F(a), F(b), MPFR_RNDN);
 
 	return r;
@@ -256,7 +256,7 @@ call_fun(char *s, explist_t l)
 		r = fn->fn(fn->priv, s, nargs, args);
 	} else {
 		hashtable_t argtbl = ext_varinit(121);
-		
+
 		for (pn = fn->namelist, i = 0; pn != NULL; pn = pn->next, i++) {
 			v = ext_varlookup(argtbl, pn->name, 1);
 			v->v = args[i];
@@ -429,7 +429,7 @@ user_newfun(char *name, namelist_t nl, ast_t a)
 	} else {
 		fn = funlookup(name, 1);
 	}
-	
+
 	fn = funlookup(name, 1);
 	fn->priv = NULL;
 	fn->fn = NULL;
