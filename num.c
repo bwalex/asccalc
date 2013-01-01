@@ -92,7 +92,7 @@ num_new_z(int flags, num_t b)
 			mpfr_get_z(Z(r), F(b), round_mode);
 	}
 
-	return r;			
+	return r;
 }
 
 
@@ -168,7 +168,7 @@ num_new_from_str(int flags, numtype_t typehint, char *str)
 		r = mpfr_strtofr(F(n), str, &suffix, 0, round_mode);
 
 		/*
-		 * XXX: add support for IEC binary prefixes? 
+		 * XXX: add support for IEC binary prefixes?
 		 */
 		if (*suffix != '\0') {
 			switch (*suffix) {
@@ -256,7 +256,7 @@ num_new_const_e(int flags)
 	mpfr_init_set_si(one, 1, round_mode);
 	mpfr_exp(F(r), one, round_mode);
 	mpfr_clear(one);
-	
+
 	return r;
 }
 
@@ -268,7 +268,7 @@ num_new_const_zero(int flags)
 
 	r = num_new_fp(flags, NULL);
 	mpfr_init_set_si(F(r), 0, round_mode);
-	
+
 	return r;
 }
 
@@ -282,11 +282,11 @@ num_is_zero(num_t a)
 	case NUM_INT:
 		nz = mpz_cmp_si(Z(a), 0);
 		break;
-		
+
 	case NUM_FP:
 		nz = mpfr_cmp_si(F(a), 0);
 		break;
-		
+
 	default:
 		yyerror("invalid number at num_is_zero!");
 		exit(1);
@@ -402,7 +402,7 @@ num_float_two_op(optype_t op_type, num_t a, num_t b)
 
 	case OP_MOD:
 		/*
-		 * XXX: mpfr_fmod or mpfr_remainder 
+		 * XXX: mpfr_fmod or mpfr_remainder
 		 */
 		mpfr_fmod(F(r), F(a), F(b), round_mode);
 		break;
@@ -424,13 +424,13 @@ num_cmp(cmptype_t ct, num_t a, num_t b)
 {
 	num_t r;
 	int s;
-	
+
 	r = num_new_z(N_TEMP, NULL);
 	a = num_new_fp(N_TEMP, a);
 	b = num_new_fp(N_TEMP, b);
 
 	s = mpfr_cmp(F(a), F(b));
-	
+
 	switch (ct) {
 	case CMP_GE: mpz_set_ui(Z(r), (s >= 0) ? 1 : 0); break;
 	case CMP_LE: mpz_set_ui(Z(r), (s <= 0) ? 1 : 0); break;
@@ -453,7 +453,7 @@ num_float_one_op(optype_t op_type, num_t a)
 
 	r = num_new_fp(N_TEMP, NULL);
 	a = num_new_fp(N_TEMP, a);
-	
+
 	switch (op_type) {
 	case OP_UMINUS:
 		mpfr_neg(F(r), F(a), round_mode);

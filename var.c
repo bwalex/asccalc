@@ -84,7 +84,7 @@ varhashdtor(hashobj_t obj)
 hashtable_t
 ext_varinit(unsigned int size)
 {
-	return hashtable_new(size, NULL, varhashdtor); 
+	return hashtable_new(size, NULL, varhashdtor);
 }
 
 
@@ -109,7 +109,6 @@ ext_varlookup(hashtable_t vtbl, const char *s, int alloc)
 	obj->data = var;
 
 	return var;
-	
 }
 
 

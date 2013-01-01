@@ -84,7 +84,7 @@ prompt(EditLine *_el)
 		snprintf(buf, sizeof(buf), "..");
 		for (i = 0; i < nesting; i++)
 			strcat(buf, ".");
-		
+
 		strcat(buf, " ");
 	} else {
 		snprintf(buf, sizeof(buf), "-> ");
@@ -120,7 +120,7 @@ int
 main(int argc, char *argv[])
 {
 	char *progname = argv[0];
-	
+
 	varinit();
 	num_init();
 	funinit();
@@ -137,12 +137,12 @@ main(int argc, char *argv[])
 	printf("Copyright (c) 2012 Alex Hornung\n");
 	printf("Type 'help' for available commands\n");
 	printf("\n");
-	
+
 	yyparse();
 
 	history_end(hist);
 	el_end(el);
-	
+
 	return 0;
 }
 

@@ -26,7 +26,7 @@
  * OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  */
-	
+
 #include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -96,7 +96,7 @@ ast_newref(char *s)
 	/*
 	 * NOTE: we don't resolve the name now for the benefit of
 	 *       (user defined) functions that access global variables.
-	 *       
+	 *
 	 *       When these functions access global variables, they
 	 *       should get the freshest value associated to that name.
 	 */
@@ -271,7 +271,7 @@ eval(ast_t a, hashtable_t vartbl)
 		eval(a->l, vartbl);
 		n = eval(a->r, vartbl);
 		break;
-		
+
 	case OP_FLOW:
 		af = (astflow_t)a;
 		switch (af->flow_type) {
@@ -302,7 +302,7 @@ eval(ast_t a, hashtable_t vartbl)
 			break;
 		}
 		break;
-		
+
 	case OP_ADD:
 	case OP_SUB:
 	case OP_MUL:
@@ -351,7 +351,7 @@ eval(ast_t a, hashtable_t vartbl)
 		var = NULL;
 		if (vartbl != NULL)
 			var = ext_varlookup(vartbl, ((astref_t) a)->name, 0);
-		
+
 		if (var == NULL) {
 			var = varlookup(((astref_t) a)->name, 0);
 			if (var == NULL) {
@@ -384,7 +384,7 @@ eval(ast_t a, hashtable_t vartbl)
 			else
 				var = varlookup(((astassign_t) a)->name, 1);
 		}
-		
+
 		n = var->v = num_new_fp(0, l);
 		break;
 
@@ -410,7 +410,7 @@ ast_delete(ast_t a)
 	astcmp_t acmp;
 	astflow_t af;
 
-	
+
 	switch (a->op_type) {
 	case OP_ADD:
 	case OP_SUB:
@@ -452,13 +452,13 @@ ast_delete(ast_t a)
 		if (af->f != NULL)
 			ast_delete(af->f);
 		break;
-		
+
 	case OP_NUM:
 		an = (astnum_t)a;
 		num_delete(an->num);
 		break;
 
-		
+
 	case OP_CALL:
 		ac = (astcall_t)a;
 		free(ac->name);
