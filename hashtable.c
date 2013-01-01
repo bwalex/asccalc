@@ -83,7 +83,7 @@ hashtable_lookup(hashtable_t tbl, const char *needle, int alloc)
 		obj = obj->next;
 
 	if ((obj == NULL) && alloc) {
-		if ((nobj = malloc(sizeof(*nobj))) == NULL) {	/* BUCKET_MANUAL */
+		if ((nobj = malloc(sizeof(*nobj))) == NULL) {
 			fprintf(stderr,
 			    "Could not allocate new object '%s'\n", needle);
 			return NULL;
