@@ -61,7 +61,7 @@ builtin_mpfr_fun_one_arg(void *priv, char *s, int nargs, num_t * argv)
 	r = num_new_fp(N_TEMP, NULL);
 	a = num_new_fp(N_TEMP, argv[0]);
 
-	fn(F(r), F(a), MPFR_RNDN);
+	fn(F(r), F(a), round_mode);
 
 	return r;
 }
@@ -96,7 +96,7 @@ builtin_mpfr_fun_two_arg(void *priv, char *s, int nargs, num_t * argv)
 	a = num_new_fp(N_TEMP, argv[0]);
 	b = num_new_fp(N_TEMP, argv[1]);
 
-	fn(F(r), F(a), F(b), MPFR_RNDN);
+	fn(F(r), F(a), F(b), round_mode);
 
 	return r;
 }
@@ -114,13 +114,13 @@ builtin_mpfr_fun_two_arg_ul(void *priv, char *s, int nargs, num_t * argv)
 	a = num_new_fp(N_TEMP, argv[0]);
 	b = num_new_fp(N_TEMP, argv[1]);
 
-	if (!mpfr_fits_ulong_p(F(b), MPFR_RNDN)) {
+	if (!mpfr_fits_ulong_p(F(b), round_mode)) {
 		yyerror
 		    ("Second argument to '%s' needs to fit into an unsigned long C datatype");
 		return NULL;
 	}
 
-	fn(F(r), F(a), mpfr_get_ui(F(b), MPFR_RNDN), MPFR_RNDN);
+	fn(F(r), F(a), mpfr_get_ui(F(b), round_mode), round_mode);
 
 	return r;
 }
@@ -324,10 +324,10 @@ builtin_avg(void *priv, char *s, int nargs, num_t * argv)
 	r = num_new_fp(N_TEMP, argv[0]);
 	for (i = 1; i < nargs; i++) {
 		t = num_new_fp(N_TEMP, argv[i]);
-		mpfr_add(F(r), F(r), F(t), MPFR_RNDN);
+		mpfr_add(F(r), F(r), F(t), round_mode);
 	}
 
-	mpfr_div_ui(F(r), F(r), n, MPFR_RNDN);
+	mpfr_div_ui(F(r), F(r), n, round_mode);
 
 	return r;
 }

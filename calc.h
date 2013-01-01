@@ -35,6 +35,9 @@
 #define BUCKET_FUN 5
 
 extern int yylineno;
+
+extern mpfr_rnd_t round_mode;
+
 void go(ast_t a);
 void test_print_num(num_t n);
 void yyerror(const char *s, ...);

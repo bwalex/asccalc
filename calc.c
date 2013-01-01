@@ -148,11 +148,13 @@ main(int argc, char *argv[])
 
 
 static char mode = 'd';
+mpfr_rnd_t round_mode = MPFR_RNDN;
 
 void
 mode_switch(char new_mode)
 {
 	mode = new_mode;
+	round_mode = (new_mode == 'd') ? MPFR_RNDN : MPFR_RNDZ;
 }
 
 

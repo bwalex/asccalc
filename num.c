@@ -89,7 +89,7 @@ num_new_z(int flags, num_t b)
 		if (b->num_type == NUM_INT)
 			mpz_set(Z(r), Z(b));
 		else if (b->num_type == NUM_FP)
-			mpfr_get_z(Z(r), F(b), MPFR_RNDN);
+			mpfr_get_z(Z(r), F(b), round_mode);
 	}
 
 	return r;			
@@ -108,9 +108,9 @@ num_new_fp(int flags, num_t b)
 
 	if (b != NULL) {
 		if (b->num_type == NUM_INT)
-			mpfr_set_z(F(r), Z(b), MPFR_RNDN);
+			mpfr_set_z(F(r), Z(b), round_mode);
 		else if (b->num_type == NUM_FP)
-			mpfr_set(F(r), F(b), MPFR_RNDN);
+			mpfr_set(F(r), F(b), round_mode);
 	}
 
 	return r;
@@ -165,7 +165,7 @@ num_new_from_str(int flags, numtype_t typehint, char *str)
 			str += 2;
 
 		mpfr_init(F(n));
-		r = mpfr_strtofr(F(n), str, &suffix, 0, MPFR_RNDN);
+		r = mpfr_strtofr(F(n), str, &suffix, 0, round_mode);
 
 		/*
 		 * XXX: add support for IEC binary prefixes? 
@@ -213,7 +213,7 @@ num_new_from_str(int flags, numtype_t typehint, char *str)
 				exit(1);
 			}
 
-			mpfr_mul_d(F(n), F(n), exp, MPFR_RNDN);
+			mpfr_mul_d(F(n), F(n), exp, round_mode);
 		}
 	}
 
@@ -227,7 +227,7 @@ num_new_const_pi(int flags)
 	num_t r;
 
 	r = num_new_fp(flags, NULL);
-	mpfr_const_pi(F(r), MPFR_RNDN);
+	mpfr_const_pi(F(r), round_mode);
 
 	return r;
 }
@@ -239,7 +239,7 @@ num_new_const_catalan(int flags)
 	num_t r;
 
 	r = num_new_fp(flags, NULL);
-	mpfr_const_catalan(F(r), MPFR_RNDN);
+	mpfr_const_catalan(F(r), round_mode);
 
 	return r;
 }
@@ -253,8 +253,8 @@ num_new_const_e(int flags)
 
 	r = num_new_fp(flags, NULL);
 
-	mpfr_init_set_si(one, 1, MPFR_RNDN);
-	mpfr_exp(F(r), one, MPFR_RNDN);
+	mpfr_init_set_si(one, 1, round_mode);
+	mpfr_exp(F(r), one, round_mode);
 	mpfr_clear(one);
 	
 	return r;
@@ -267,7 +267,7 @@ num_new_const_zero(int flags)
 	num_t r;
 
 	r = num_new_fp(flags, NULL);
-	mpfr_init_set_si(F(r), 0, MPFR_RNDN);
+	mpfr_init_set_si(F(r), 0, round_mode);
 	
 	return r;
 }
@@ -385,30 +385,30 @@ num_float_two_op(optype_t op_type, num_t a, num_t b)
 
 	switch (op_type) {
 	case OP_ADD:
-		mpfr_add(F(r), F(a), F(b), MPFR_RNDN);
+		mpfr_add(F(r), F(a), F(b), round_mode);
 		break;
 
 	case OP_SUB:
-		mpfr_sub(F(r), F(a), F(b), MPFR_RNDN);
+		mpfr_sub(F(r), F(a), F(b), round_mode);
 		break;
 
 	case OP_MUL:
-		mpfr_mul(F(r), F(a), F(b), MPFR_RNDN);
+		mpfr_mul(F(r), F(a), F(b), round_mode);
 		break;
 
 	case OP_DIV:
-		mpfr_div(F(r), F(a), F(b), MPFR_RNDN);
+		mpfr_div(F(r), F(a), F(b), round_mode);
 		break;
 
 	case OP_MOD:
 		/*
 		 * XXX: mpfr_fmod or mpfr_remainder 
 		 */
-		mpfr_fmod(F(r), F(a), F(b), MPFR_RNDN);
+		mpfr_fmod(F(r), F(a), F(b), round_mode);
 		break;
 
 	case OP_POW:
-		mpfr_pow(F(r), F(a), F(b), MPFR_RNDN);
+		mpfr_pow(F(r), F(a), F(b), round_mode);
 		break;
 
 	default:
@@ -456,7 +456,7 @@ num_float_one_op(optype_t op_type, num_t a)
 	
 	switch (op_type) {
 	case OP_UMINUS:
-		mpfr_neg(F(r), F(a), MPFR_RNDN);
+		mpfr_neg(F(r), F(a), round_mode);
 		break;
 
 	default:
