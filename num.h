@@ -66,6 +66,7 @@ void num_delete_temp(void);
 
 num_t num_int_two_op(optype_t op_type, num_t a, num_t b);
 num_t num_int_one_op(optype_t op_type, num_t a);
+num_t num_int_part_sel(char op, int hi, int lo, num_t a);
 num_t num_float_two_op(optype_t op_type, num_t a, num_t b);
 num_t num_float_one_op(optype_t op_type, num_t a);
 num_t num_cmp(cmptype_t ct, num_t a, num_t b);

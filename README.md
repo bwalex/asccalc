@@ -67,9 +67,11 @@ Comparison Operators (return 1 if true, otherwise 0)
 Unary Operators
 ---------
 ```
--        Unary minus
-~        1's complement
-!        Factorial
+-          Unary minus
+~          1's complement
+!          Factorial
+[hi:lo]    Verilog-style part select (select bits from MSB=hi to LSB=lo)
+[hi-:cnt]  Verilog-style part select (select cnt bits downwards from MSB=hi)
 ```
 
 

@@ -41,6 +41,7 @@
 %nonassoc UMINUS UNEG
 %right POW
 %nonassoc '!'
+%nonassoc <s> PSEL
 
 
 %type <a> exp stmt list
@@ -90,6 +91,7 @@ exp: exp CMP exp          { $$ = ast_newcmp($2, $1, $3); }
    | '-' exp %prec UMINUS { $$ = ast_new(OP_UMINUS, $2, NULL); }
    | '~' exp %prec UNEG   { $$ = ast_new(OP_UINV,   $2, NULL); }
    | exp '!'              { $$ = ast_new(OP_FAC,    $1, NULL); }
+   | exp PSEL             { $$ = ast_newpsel(       $1, $2  ); }
    | NUM                  { $$ = $1; }
    | NAME '(' explist ')' { $$ = ast_newcall($1, $3); }
    | NAME                 { $$ = ast_newref($1); }

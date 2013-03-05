@@ -21,7 +21,12 @@ int nesting = 0;
 EXP	([Ee][-+]?[0-9]+)
 SUFFIX	([afpnumkMGTPE])
 
+/* part select */
+PSEL	(\[[0-9]+[-+]?:[0-9]+\])
+
 %%
+
+{PSEL}  { yylval.s = strdup(yytext); return PSEL; }
 
 "**" |
 "^^"    { return POW; }
@@ -45,7 +50,9 @@ SUFFIX	([afpnumkMGTPE])
 ";" |
 "!" |
 "(" |
-")"     { return yytext[0]; }
+")" |
+"{" |
+"}"     { return yytext[0]; }
 
 "or" |
 "OR" |
@@ -97,7 +104,7 @@ SUFFIX	([afpnumkMGTPE])
 
 "#".*   /* ignore comment */
 "//".*  /* ignore comment */
-[ \t]   /* ignore white space */ 
+[ \t]   /* ignore white space */
 \\\n    { linecont = 1; } /* ignore line continuation */
 "\n"    { linecont = 0; if (nesting == 0) return EOL; }
 

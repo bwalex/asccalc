@@ -145,6 +145,43 @@ ast_newnum(numtype_t type, char *str)
 
 
 ast_t
+ast_newpsel(ast_t l, char *str)
+{
+	astpsel_t a;
+	char *psel_hi, *psel_lo, psel_op, *tmp;
+
+	if ((psel_hi = strchr(str, '[')) != NULL) {
+		*psel_hi = '\0';
+		psel_lo = ++psel_hi;
+		while (isdigit(*psel_lo))
+			++psel_lo;
+		/* Set psel_op to either +, - or : */
+		psel_op = *psel_lo++;
+		while (!isdigit(*psel_lo))
+			++psel_lo;
+		if ((tmp = strchr(psel_lo, ']')) != NULL)
+			*tmp = '\0';
+	}
+
+	if ((a = alloc_safe_mem(BUCKET_AST, sizeof(*a))) == NULL) {
+		yyerror("ENOMEM");
+		exit(1);
+	}
+
+	a->op_type = OP_PSEL;
+	a->l = l;
+
+	a->op = psel_op;
+	a->hi = atoi(psel_hi);
+	a->lo = atoi(psel_lo);
+
+	free(str);
+
+	return (ast_t) a;
+}
+
+
+ast_t
 ast_newcmp(cmptype_t ct, ast_t l, ast_t r)
 {
 	astcmp_t a;
@@ -252,6 +289,7 @@ eval(ast_t a, hashtable_t vartbl)
 {
 	astcmp_t acmp;
 	astflow_t af;
+	astpsel_t ap;
 	num_t n, c, l, r;
 	var_t var;
 
@@ -343,6 +381,14 @@ eval(ast_t a, hashtable_t vartbl)
 		n = num_int_one_op(a->op_type, l);
 		break;
 
+	case OP_PSEL:
+		ap = (astpsel_t)a;
+		l = eval(ap->l, vartbl);
+		if (l == NULL)
+			return NULL;
+		n = num_int_part_sel(ap->op, ap->hi, ap->lo, l);
+		break;
+
 	case OP_NUM:
 		n = ((astnum_t) a)->num;
 		break;
@@ -409,6 +455,7 @@ ast_delete(ast_t a)
 	astassign_t aa;
 	astcmp_t acmp;
 	astflow_t af;
+	astpsel_t ap;
 
 
 	switch (a->op_type) {
@@ -474,6 +521,11 @@ ast_delete(ast_t a)
 		aa = (astassign_t)a;
 		ast_delete(aa->v);
 		free(aa->name);
+		break;
+
+	case OP_PSEL:
+		ap = (astpsel_t)a;
+		ast_delete(ap->l);
 		break;
 
 	default:

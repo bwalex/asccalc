@@ -53,6 +53,18 @@ typedef struct astref
 } *astref_t;
 
 
+typedef struct astpsel
+{
+	optype_t op_type;
+
+	struct ast *l;
+	char op;
+
+	int hi;
+	int lo;
+} *astpsel_t;
+
+
 typedef struct astassign
 {
 	optype_t op_type;
@@ -114,6 +126,7 @@ ast_t ast_newcall(char *s, explist_t l);
 ast_t ast_newref(char *s);
 ast_t ast_newassign(char *s, ast_t v);
 ast_t ast_newnum(numtype_t type, char *str);
+ast_t ast_newpsel(ast_t l, char *str);
 ast_t ast_newcmp(cmptype_t ct, ast_t l, ast_t r);
 ast_t ast_newflow(flowtype_t ft, ast_t c, ast_t t, ast_t f);
 explist_t ast_newexplist(ast_t exp, explist_t next);

@@ -51,7 +51,8 @@ typedef enum OP_TYPE
 	OP_NUM,
 	OP_CMP,
 	OP_LISTING,
-	OP_FLOW
+	OP_FLOW,
+	OP_PSEL
 } optype_t;
 
 

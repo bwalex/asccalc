@@ -375,6 +375,47 @@ num_int_one_op(optype_t op_type, num_t a)
 
 
 num_t
+num_int_part_sel(char op, int hi, int lo, num_t a)
+{
+	num_t r, m;
+	int mask_shl;
+
+	r = num_new_z(N_TEMP, NULL);
+	m = num_new_z(N_TEMP, NULL);
+	a = num_new_z(N_TEMP, a);
+
+	switch (op) {
+	case ':':
+		break;
+
+	case '-':
+		lo = 1 + hi - lo;
+		break;
+
+	default:
+		yyerror("Unknown op in num_int_part_sel");
+	}
+
+	mask_shl = 1+(hi-lo);
+
+	/*
+	 * We do the part sel by:
+	 *  (1) shifting right by 'lo'
+	 *  (2) anding with ((1 << mask_shl)-1)
+	 */
+	mpz_div_2exp(Z(r), Z(a), (unsigned long int)lo);
+
+	mpz_set_ui(Z(m), 1UL);
+	mpz_mul_2exp(Z(m), Z(m), (unsigned long)mask_shl);
+	mpz_sub_ui(Z(m), Z(m), 1UL);
+
+	mpz_and(Z(r), Z(r), Z(m));
+
+	return r;
+}
+
+
+num_t
 num_float_two_op(optype_t op_type, num_t a, num_t b)
 {
 	num_t r;
