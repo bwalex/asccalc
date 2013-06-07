@@ -531,6 +531,8 @@ funlist(void)
 	struct fun_iteration i;
 	func_t f;
 	int n;
+	int maxlen = 0;
+	int len;
 
 	i.s = NULL;
 	i.count = 0;
@@ -539,10 +541,19 @@ funlist(void)
 	hashtable_iterate(funtbl, _fun_iterator, &i);
 	qsort(i.s, i.count, sizeof(char *), _name_comp);
 
+	for (n = 0; n < i.count; n++) {
+		len = strlen(i.s[n]);
+		if (len > maxlen)
+			maxlen = len;
+	}
+
+	maxlen += 2;
+
 	printf("Functions:\n");
 	for (n = 0; n < i.count; n++) {
 		f = funlookup(i.s[n], 0);
-		printf("%s%s\n", i.s[n], f->builtin ? "\t\t [builtin]" : "\t\t [user-defined]");
+		printf("%s%*s%s\n", i.s[n], maxlen-(int)strlen(i.s[n]), "",
+		    f->builtin ? "[builtin]" : "[user-defined]");
 	}
 }
 
