@@ -23,10 +23,12 @@ SUFFIX	([afpnumkMGTPE])
 
 /* part select */
 PSEL	(\[[0-9]+[-+]?:[0-9]+\])
+PSELS	(\[[0-9]+\])
 
 %%
 
 {PSEL}  { yylval.s = strdup(yytext); return PSEL; }
+{PSELS} { yylval.s = strdup(yytext); return PSELS; }
 
 "**" |
 "^^"    { return POW; }

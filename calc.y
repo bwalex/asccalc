@@ -42,6 +42,7 @@
 %right POW
 %nonassoc '!'
 %nonassoc <s> PSEL
+%nonassoc <s> PSELS
 
 
 %type <a> exp stmt list
@@ -92,6 +93,7 @@ exp: exp CMP exp          { $$ = ast_newcmp($2, $1, $3); }
    | '~' exp %prec UNEG   { $$ = ast_new(OP_UINV,   $2, NULL); }
    | exp '!'              { $$ = ast_new(OP_FAC,    $1, NULL); }
    | exp PSEL             { $$ = ast_newpsel(       $1, $2  ); }
+   | exp PSELS            { $$ = ast_newpsel(       $1, $2  ); }
    | NUM                  { $$ = $1; }
    | NAME '(' explist ')' { $$ = ast_newcall($1, $3); }
    | NAME                 { $$ = ast_newref($1); }

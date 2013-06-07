@@ -155,12 +155,17 @@ ast_newpsel(ast_t l, char *str)
 		psel_lo = ++psel_hi;
 		while (isdigit(*psel_lo))
 			++psel_lo;
-		/* Set psel_op to either +, - or : */
+		/* Set psel_op to either +, -, : or ] */
 		psel_op = *psel_lo++;
-		while (!isdigit(*psel_lo))
-			++psel_lo;
-		if ((tmp = strchr(psel_lo, ']')) != NULL)
-			*tmp = '\0';
+		if (psel_op == ']') {
+			psel_lo = psel_hi;
+			psel_op = ':';
+		} else {
+			while (!isdigit(*psel_lo))
+				++psel_lo;
+			if ((tmp = strchr(psel_lo, ']')) != NULL)
+				*tmp = '\0';
+		}
 	}
 
 	if ((a = alloc_safe_mem(BUCKET_AST, sizeof(*a))) == NULL) {
