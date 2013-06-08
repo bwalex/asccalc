@@ -68,6 +68,11 @@ yyerror(const char *s, ...)
 	nesting = 0;
 }
 
+int
+yywrap(void)
+{
+	return 0;
+}
 
 static
 char *

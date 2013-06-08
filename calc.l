@@ -1,6 +1,7 @@
-%option noyywrap nodefault yylineno
+%option nodefault yylineno
 %{
 # include <stdio.h>
+# include <assert.h>
 # include <gmp.h>
 # include <mpfr.h>
 # include "hashtable.h"
@@ -24,6 +25,9 @@ SUFFIX	([afpnumkMGTPE])
 /* part select */
 PSEL	(\[[0-9]+[-+]?:[0-9]+\])
 PSELS	(\[[0-9]+\])
+
+%x reqb
+%x reqstr
 
 %%
 
@@ -80,6 +84,23 @@ PSELS	(\[[0-9]+\])
 "function"    { ++nesting; return FUNCTION; }
 "endfunction" { --nesting; return ENDFUNCTION; }
 
+"require"       BEGIN reqb;
+<reqb>[ \t]     /* ignore white space */
+<reqb>\"        BEGIN reqstr;
+<reqb>.         { printf("Mystery character: %c\n", yytext[0]); BEGIN 0; return yytext[0]; }
+<reqstr>[^\\"]* {
+                  char buf[1024];
+                  printf("yytext: %s\n", yytext);
+                  yyin = fopen(yytext, "r");
+                  assert(yyin != NULL);
+                  fread(buf, 1024, 1, yyin);
+                  yy_scan_string(buf);
+                  //yypush_buffer_state(yy_create_buffer(yyin, YY_BUF_SIZE));
+                  BEGIN 0;
+                }
+<reqstr>\"      BEGIN 0;
+<reqstr>.       { printf("Mystery character: %c\n", yytext[0]); BEGIN 0; return yytext[0]; }
+
  /* Commands */
 ^"mode "[bdhox]"\n" { mode_switch(yytext[5]); /* XXX */ printf("mode switch to %c\n", yytext[5]); }
 ^"m "[bdhox]"\n"    { mode_switch(yytext[2]); /* XXX */ printf("mode switch to %c\n", yytext[2]); }
@@ -107,6 +128,7 @@ PSELS	(\[[0-9]+\])
 [ \t]   /* ignore white space */
 \\\n    { linecont = 1; } /* ignore line continuation */
 "\n"    { linecont = 0; if (nesting == 0) return EOL; }
+
 
 .       { printf("Mystery character: %c\n", yytext[0]); return yytext[0]; }
 %%
