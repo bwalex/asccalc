@@ -12,10 +12,11 @@
 # include "func.h"
 # include "calc.h"
 # include "calc.tab.h"
-# define YY_INPUT(buf,result,max_size) (result = yy_input_helper(buf, max_size))
 
 int linecont = 0;
 int nesting = 0;
+
+char *incpath = NULL;
 %}
 
 /* float exponent */
@@ -88,17 +89,15 @@ PSELS	(\[[0-9]+\])
 <reqb>[ \t]     /* ignore white space */
 <reqb>\"        BEGIN reqstr;
 <reqb>.         { printf("Mystery character: %c\n", yytext[0]); BEGIN 0; return yytext[0]; }
-<reqstr>[^\\"]* {
-                  char buf[1024];
-                  printf("yytext: %s\n", yytext);
-                  yyin = fopen(yytext, "r");
+<reqstr>[^\\"]* { incpath = strdup(yytext); }
+<reqstr>\"      {
+                  assert(incpath != NULL);
+                  yyin = fopen(incpath, "r");
+                  free(incpath);
                   assert(yyin != NULL);
-                  fread(buf, 1024, 1, yyin);
-                  yy_scan_string(buf);
-                  //yypush_buffer_state(yy_create_buffer(yyin, YY_BUF_SIZE));
+                  yypush_buffer_state(yy_create_buffer(yyin, YY_BUF_SIZE));
                   BEGIN 0;
                 }
-<reqstr>\"      BEGIN 0;
 <reqstr>.       { printf("Mystery character: %c\n", yytext[0]); BEGIN 0; return yytext[0]; }
 
  /* Commands */
@@ -129,6 +128,12 @@ PSELS	(\[[0-9]+\])
 \\\n    { linecont = 1; } /* ignore line continuation */
 "\n"    { linecont = 0; if (nesting == 0) return EOL; }
 
+
+<<EOF>> {
+          yypop_buffer_state();
+          if (YY_CURRENT_BUFFER == NULL)
+            yyterminate();
+        }
 
 .       { printf("Mystery character: %c\n", yytext[0]); return yytext[0]; }
 %%

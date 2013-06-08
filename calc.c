@@ -68,12 +68,6 @@ yyerror(const char *s, ...)
 	nesting = 0;
 }
 
-int
-yywrap(void)
-{
-	return 0;
-}
-
 static
 char *
 prompt(void)
@@ -96,32 +90,24 @@ prompt(void)
 
 
 int
-yy_input_helper(char *buf, size_t max_size)
+yywrap(void)
 {
-	char *s;
-	int count;
+	char *line;
+	int len;
 
-again:
-	s = linenoise(prompt());
-	if (s != NULL)
-		count = strlen(s);
-
-	if (s == NULL)
+	if (nesting || linecont) {
+		if ((line = linenoise(prompt())) != NULL) {
+			len = strlen(line);
+			line = realloc(line, len+2);
+			line[len] = '\n';
+			line[len+1] = '\0';
+			yy_scan_string(line);
+			free(line);
+		}
 		return 0;
+	}
 
-	if (count == 0)
-		goto again;
-
-
-	linenoiseHistoryAdd(s);
-
-	assert(max_size > (size_t)count);
-
-	memcpy(buf, s, count);
-	buf[count] = '\n';
-	free(s);
-
-	return count+1;
+	return 1;
 }
 
 
@@ -129,6 +115,8 @@ int
 main(int argc, char *argv[])
 {
 	char *progname = argv[0];
+	char *line;
+	int len;
 
 	varinit();
 	num_init();
@@ -136,12 +124,22 @@ main(int argc, char *argv[])
 
 	linenoiseHistorySetMaxLen(MAX_HIST_LEN);
 
-	printf("ascalc - A Simple Console Calculator\n");
-	printf("Copyright (c) 2012-2013 Alex Hornung\n");
-	printf("Type 'help' for available commands\n");
-	printf("\n");
+	if (isatty(fileno(stdin))) {
+		printf("ascalc - A Simple Console Calculator\n");
+		printf("Copyright (c) 2012-2013 Alex Hornung\n");
+		printf("Type 'help' for available commands\n");
+		printf("\n");
+	}
 
-	yyparse();
+	while ((line = linenoise(prompt())) != NULL) {
+		len = strlen(line);
+		line = realloc(line, len + 2);
+		line[len] = '\n';
+		line[len+1] = '\0';
+		yy_scan_string(line);
+		free(line);
+		yyparse();
+	}
 
 	return 0;
 }
