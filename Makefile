@@ -14,7 +14,7 @@ WARNFLAGS= -Wsystem-headers -Wall -W -Wno-unused-parameter \
 CC= gcc
 CFLAGS= -O0 -g3 $(WARNFLAGS)
 LDFLAGS=
-LIBS= -lm -lgmp -lmpfr -ledit -lncurses
+LIBS= -lm -lgmp -lmpfr
 
 all: parser lexer
 	$(CC) -c $(CFLAGS) calc.tab.c
@@ -26,8 +26,9 @@ all: parser lexer
 	$(CC) -c $(CFLAGS) hashtable.c
 	$(CC) -c $(CFLAGS) safe_mem.c
 	$(CC) -c $(CFLAGS) calc.c
+	$(CC) -c $(CFLAGS) linenoise.c
 
-	$(CC) -o asccalc $(CFLAGS) calc.tab.o lex.yy.o num.o ast.o var.o func.o hashtable.o safe_mem.o calc.o $(LIBS)
+	$(CC) -o asccalc $(CFLAGS) calc.tab.o lex.yy.o num.o ast.o var.o func.o hashtable.o safe_mem.o calc.o linenoise.o $(LIBS)
 
 parser:
 	bison -d calc.y

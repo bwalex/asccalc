@@ -67,7 +67,6 @@ list:     /* nothing */   { $$ = NULL; }
 
 
 clist: /* nothing */
-        | EOL
         | clist EOL
         | clist stmt EOL { go($2); }
         | clist exp EOL { go($2); }

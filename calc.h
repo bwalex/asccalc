@@ -27,6 +27,8 @@
  * SUCH DAMAGE.
  */
 
+#define MAX_HIST_LEN	1000
+
 #define BUCKET_MANUAL 0
 #define BUCKET_AST 1
 #define BUCKET_NUM 2

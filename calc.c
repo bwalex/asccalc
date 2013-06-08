@@ -37,7 +37,7 @@
 #include <gmp.h>
 #include <mpfr.h>
 
-#include <histedit.h>
+#include "linenoise.h"
 
 #include "hashtable.h"
 
@@ -52,10 +52,6 @@
 
 extern int nesting;
 extern int linecont;
-
-EditLine *el;
-History *hist;
-HistEvent ev;
 
 
 void
@@ -75,7 +71,7 @@ yyerror(const char *s, ...)
 
 static
 char *
-prompt(EditLine *_el)
+prompt(void)
 {
 	static char buf[1024];
 	int i;
@@ -83,7 +79,7 @@ prompt(EditLine *_el)
 	if (nesting || linecont) {
 		snprintf(buf, sizeof(buf), "..");
 		for (i = 0; i < nesting; i++)
-			strcat(buf, ".");
+			strcat(buf, "..");
 
 		strcat(buf, " ");
 	} else {
@@ -97,22 +93,30 @@ prompt(EditLine *_el)
 int
 yy_input_helper(char *buf, size_t max_size)
 {
-	const char *s;
+	char *s;
 	int count;
 
-	s = el_gets(el, &count);
-	if (count <= 0 || s == NULL)
+again:
+	s = linenoise(prompt());
+	if (s != NULL)
+		count = strlen(s);
+
+	if (s == NULL)
 		return 0;
 
-	if ((size_t)count > max_size) {
-		el_push(el, (char *)(s + max_size));
-		count = max_size;
-	}
+	if (count == 0)
+		goto again;
+
+
+	linenoiseHistoryAdd(s);
+
+	assert(max_size > (size_t)count);
 
 	memcpy(buf, s, count);
-	history(hist, &ev, H_ENTER, s);
+	buf[count] = '\n';
+	free(s);
 
-	return count;
+	return count+1;
 }
 
 
@@ -125,13 +129,7 @@ main(int argc, char *argv[])
 	num_init();
 	funinit();
 
-	hist = history_init();
-	history(hist, &ev, H_SETSIZE, 1000);
-	el = el_init(progname, stdin, stdout, stderr);
-	el_set(el, EL_PROMPT, prompt);
-	el_set(el, EL_SIGNAL, 1);
-	el_set(el, EL_HIST, history, hist);
-	el_set(el, EL_EDITOR, "emacs");
+	linenoiseHistorySetMaxLen(MAX_HIST_LEN);
 
 	printf("ascalc - A Simple Console Calculator\n");
 	printf("Copyright (c) 2012-2013 Alex Hornung\n");
@@ -139,9 +137,6 @@ main(int argc, char *argv[])
 	printf("\n");
 
 	yyparse();
-
-	history_end(hist);
-	el_end(el);
 
 	return 0;
 }
