@@ -2,6 +2,7 @@ CC?=	gcc
 RM?=	rm -f
 BISON?=	bison
 FLEX?=	flex
+INSTALL?=install
 
 MAJ_VER=0
 MIN_VER=8
@@ -57,3 +58,6 @@ realclean: clean
 	$(RM) calc.tab.c calc.tab.h
 	$(RM) lex.yy.c lex.yy.h
 	$(RM) *~
+
+install: asccalc
+	$(INSTALL) asccalc /usr/local/bin
