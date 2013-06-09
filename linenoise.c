@@ -93,7 +93,7 @@
  *    Effect: clear the whole screen
  * 
  */
-
+#define _GNU_SOURCE
 #include <termios.h>
 #include <unistd.h>
 #include <stdlib.h>
@@ -105,6 +105,7 @@
 #include <sys/ioctl.h>
 #include <unistd.h>
 #include <ctype.h>
+#include <assert.h>
 #include "linenoise.h"
 
 #define LINENOISE_DEFAULT_HISTORY_MAX_LEN 100
@@ -246,8 +247,20 @@ static int completeLine(struct linenoiseState *ls) {
     linenoiseCompletions lc = { 0, NULL };
     int nread, nwritten;
     char c = 0;
+    char *p;
+    char *s;
+    int len;
 
-    completionCallback(ls->buf,&lc);
+
+    p = strrchr(ls->buf, ' ');
+    if (p == NULL)
+      p = strrchr(ls->buf, ',');
+    if (p != NULL)
+      p++;
+    else
+      p = ls->buf;
+
+    completionCallback(p,&lc);
     if (lc.len == 0) {
         linenoiseBeep();
     } else {
@@ -258,9 +271,19 @@ static int completeLine(struct linenoiseState *ls) {
             if (i < lc.len) {
                 struct linenoiseState saved = *ls;
 
-                ls->len = ls->pos = strlen(lc.cvec[i]);
-                ls->buf = lc.cvec[i];
+                len = strlen(lc.cvec[i]);
+                s = malloc(ls->len + len + 2);
+                memcpy(s, ls->buf, ls->len);
+                strcpy(s+ ls->len, lc.cvec[i]);
+
+                ls->len += len;
+                ls->pos = ls->len;
+                ls->buf = s;
+                assert(ls->buf != 0);
+
                 refreshLine(ls);
+                free(ls->buf);
+
                 ls->len = saved.len;
                 ls->pos = saved.pos;
                 ls->buf = saved.buf;
