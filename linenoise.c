@@ -245,11 +245,12 @@ static void freeCompletions(linenoiseCompletions *lc) {
  * structure as described in the structure definition. */
 static int completeLine(struct linenoiseState *ls) {
     linenoiseCompletions lc = { 0, NULL };
-    int nread, nwritten;
+    int nread;
     char c = 0;
     char *p;
     char *s;
     int len;
+    int plen;
 
 
     p = strrchr(ls->buf, ' ');
@@ -259,6 +260,8 @@ static int completeLine(struct linenoiseState *ls) {
       p++;
     else
       p = ls->buf;
+
+    plen = strlen(p);
 
     completionCallback(p,&lc);
     if (lc.len == 0) {
@@ -271,6 +274,7 @@ static int completeLine(struct linenoiseState *ls) {
             if (i < lc.len) {
                 struct linenoiseState saved = *ls;
 
+                ls->len -= plen;
                 len = strlen(lc.cvec[i]);
                 s = malloc(ls->len + len + 2);
                 memcpy(s, ls->buf, ls->len);
@@ -310,8 +314,11 @@ static int completeLine(struct linenoiseState *ls) {
                 default:
                     /* Update buffer and return */
                     if (i < lc.len) {
-                        nwritten = snprintf(ls->buf,ls->buflen,"%s",lc.cvec[i]);
-                        ls->len = ls->pos = nwritten;
+                        ls->len -= plen;
+                        len = strlen(lc.cvec[i]);
+                        snprintf(ls->buf + ls->len, ls->buflen-ls->len, "%s", lc.cvec[i]);
+                        ls->len += len;
+                        ls->pos = ls->len;
                     }
                     stop = 1;
                     break;
