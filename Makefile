@@ -1,7 +1,10 @@
+CC?=	gcc
+RM?=	rm -f
+BISON?=	bison
+FLEX?=	flex
 
-
-
-
+MAJ_VER=0
+MIN_VER=8
 
 WARNFLAGS= -Wsystem-headers -Wall -W -Wno-unused-parameter \
 	-Wstrict-prototypes -Wmissing-prototypes -Wpointer-arith \
@@ -11,35 +14,38 @@ WARNFLAGS= -Wsystem-headers -Wall -W -Wno-unused-parameter \
 
 #WARNFLAGS+= -Werror -Wcast-qual -Wunused-parameter
 
-CC= gcc
-CFLAGS= -O0 -g3 $(WARNFLAGS)
+VER_FLAGS= -DMAJ_VER=$(MAJ_VER) -DMIN_VER=$(MIN_VER)
+
+CFLAGS=	-O0 -g3 $(WARNFLAGS) $(VER_FLAGS)
 LDFLAGS=
-LIBS= -lm -lgmp -lmpfr
+LIBS=	-lm -lgmp -lmpfr
 
-all: parser lexer
-	$(CC) -c $(CFLAGS) calc.tab.c
-	$(CC) -c $(CFLAGS) lex.yy.c
-	$(CC) -c $(CFLAGS) num.c
-	$(CC) -c $(CFLAGS) ast.c
-	$(CC) -c $(CFLAGS) var.c
-	$(CC) -c $(CFLAGS) func.c
-	$(CC) -c $(CFLAGS) hashtable.c
-	$(CC) -c $(CFLAGS) safe_mem.c
-	$(CC) -c $(CFLAGS) calc.c
-	$(CC) -c $(CFLAGS) linenoise.c
+OBJS=	calc.tab.o lex.yy.o
+OBJS+=	linenoise.o
+OBJS+=	num.o ast.o var.o func.o hashtable.o safe_mem.o calc.o
 
-	$(CC) -o asccalc $(CFLAGS) calc.tab.o lex.yy.o num.o ast.o var.o func.o hashtable.o safe_mem.o calc.o linenoise.o $(LIBS)
+all: asccalc
 
-parser:
-	bison -d calc.y
+asccalc: $(OBJS)
+	$(CC) $(CFLAGS) -o asccalc $^ $(LIBS)
 
-lexer: parser
-	flex --header-file=lex.yy.h calc.l 
+calc.tab.c: calc.y lex.yy.h
+	$(BISON) -d $<
+
+calc.tab.h: calc.tab.c
+	# created by dep
+
+lex.yy.c: calc.l
+	$(FLEX) --header-file=lex.yy.h $<
+
+lex.yy.h: lex.yy.c
+	# created by dep
 
 clean:
-	rm -f *.o asccalc
+	$(RM) $(OBJS)
+	$(RM) asccalc
 
 realclean: clean
-	rm -f calc.tab.c calc.tab.h
-	rm -f lex.yy.c lex.yy.h
-	rm -f *~
+	$(RM) calc.tab.c calc.tab.h
+	$(RM) lex.yy.c lex.yy.h
+	$(RM) *~

@@ -299,19 +299,18 @@ Dependencies
 ```
 flex (build only)
 bison (build only)
-libedit
 libmpfr
 libgmp
 ```
 
 To build on Ubuntu and Debian:
 
-    apt-get install flex bison libedit-dev libmpfr-dev libgmp-dev make gcc
+    apt-get install flex bison libmpfr-dev libgmp-dev make gcc
 
 
 To just use a binary package:
 
-    apt-get install libedit2 libgmp10 libmpfr4
+    apt-get install libgmp10 libmpfr4
 
 
 Build

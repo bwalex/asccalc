@@ -125,7 +125,8 @@ main(int argc, char *argv[])
 	linenoiseHistorySetMaxLen(MAX_HIST_LEN);
 
 	if (isatty(fileno(stdin))) {
-		printf("ascalc - A Simple Console Calculator\n");
+		printf("ascalc %d.%d - A Simple Console Calculator\n",
+		    MAJ_VER, MIN_VER);
 		printf("Copyright (c) 2012-2013 Alex Hornung\n");
 		printf("Type 'help' for available commands\n");
 		printf("\n");
