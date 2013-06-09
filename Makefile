@@ -16,9 +16,17 @@ WARNFLAGS= -Wsystem-headers -Wall -W -Wno-unused-parameter \
 
 VER_FLAGS= -DMAJ_VER=$(MAJ_VER) -DMIN_VER=$(MIN_VER)
 
-CFLAGS=	-O0 -g3 $(WARNFLAGS) $(VER_FLAGS)
+CFLAGS=	$(WARNFLAGS) $(VER_FLAGS)
+CFLAGS_DEBUG= -O0 -g3
+CFLAGS_OPT=   -O4 -flto
 LDFLAGS=
 LIBS=	-lm -lgmp -lmpfr
+
+ifeq (${DEBUG}, yes)
+  CFLAGS += $(CFLAGS_DEBUG)
+else
+  CFLAGS += $(CFLAGS_OPT)
+endif
 
 OBJS=	calc.tab.o lex.yy.o
 OBJS+=	linenoise.o
