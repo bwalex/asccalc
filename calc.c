@@ -89,6 +89,15 @@ prompt(void)
 }
 
 
+static
+void
+linenoise_completion(const char *buf, linenoiseCompletions *lc) {
+	if (buf[0] == '\0') {
+		linenoiseAddCompletion(lc, "ans ");
+	}
+}
+
+
 int
 yywrap(void)
 {
@@ -97,6 +106,7 @@ yywrap(void)
 
 	if (nesting || linecont) {
 		if ((line = linenoise(prompt())) != NULL) {
+			linenoiseHistoryAdd(line);
 			len = strlen(line);
 			line = realloc(line, len+2);
 			line[len] = '\n';
@@ -123,6 +133,7 @@ main(int argc, char *argv[])
 	funinit();
 
 	linenoiseHistorySetMaxLen(MAX_HIST_LEN);
+	linenoiseSetCompletionCallback(linenoise_completion);
 
 	if (isatty(fileno(stdin))) {
 		printf("ascalc %d.%d - A Simple Console Calculator\n",
@@ -133,6 +144,7 @@ main(int argc, char *argv[])
 	}
 
 	while ((line = linenoise(prompt())) != NULL) {
+		linenoiseHistoryAdd(line);
 		len = strlen(line);
 		line = realloc(line, len + 2);
 		line[len] = '\n';
@@ -208,7 +220,8 @@ go(ast_t a)
 	if (ans == NULL)
 		return;
 
-	printf("ans = ");
+	if (isatty(fileno(stdin)))
+		printf("ans = ");
 	test_print_num(ans);
 
 	var = varlookup("ans", 1);
