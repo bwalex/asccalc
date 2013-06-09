@@ -33,10 +33,11 @@ typedef struct var
 	num_t v;
 } *var_t;
 
+typedef void (*var_it_fn)(void *, const char *);
 
 hashtable_t ext_varinit(unsigned int size);
 var_t ext_varlookup(hashtable_t vtbl, const char *s, int alloc);
 int varinit(void);
 var_t varlookup(const char *s, int alloc);
 void varlist(void);
-
+void var_iterate(void *priv, var_it_fn fn);

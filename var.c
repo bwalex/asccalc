@@ -133,6 +133,8 @@ struct var_iteration {
 	char **s;
 	int count;
 	int allocsize;
+	void *priv;
+	var_it_fn fn;
 };
 
 
@@ -160,6 +162,28 @@ _var_iterator(void *priv, hashobj_t obj)
 	}
 
 	ip->s[ip->count++] = obj->str;
+}
+
+
+static
+void
+_var_iterator_gen(void *priv, hashobj_t obj)
+{
+	struct var_iteration *ip = priv;
+
+	ip->fn(ip->priv, obj->str);
+}
+
+
+void
+var_iterate(void *priv, var_it_fn fn)
+{
+	struct var_iteration it;
+
+	it.fn = fn;
+	it.priv = priv;
+
+	hashtable_iterate(vartbl, _var_iterator_gen, &it);
 }
 
 

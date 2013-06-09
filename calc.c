@@ -89,11 +89,37 @@ prompt(void)
 }
 
 
+struct comp_helper {
+	void *priv;
+	const char *filter;
+	size_t filter_len;
+};
+
+
+static
+void
+_var_completion_filter(void *priv, const char *var_name)
+{
+	struct comp_helper *ph = priv;
+
+	if (strncmp(var_name, ph->filter, ph->filter_len) == 0) {
+		linenoiseAddCompletion(ph->priv, var_name);
+	}
+}
+
+
 static
 void
 linenoise_completion(const char *buf, linenoiseCompletions *lc) {
+	struct comp_helper h;
+
 	if (buf[0] == '\0') {
 		linenoiseAddCompletion(lc, "ans ");
+	} else {
+		h.priv = lc;
+		h.filter = buf;
+		h.filter_len = strlen(buf);
+		var_iterate(&h, _var_completion_filter);
 	}
 }
 
