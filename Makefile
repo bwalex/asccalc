@@ -3,6 +3,7 @@ RM?=	rm -f
 BISON?=	bison
 FLEX?=	flex
 INSTALL?=install
+DESTDIR?=/usr/local/bin
 
 MAJ_VER=0
 MIN_VER=8
@@ -60,4 +61,4 @@ realclean: clean
 	$(RM) *~
 
 install: asccalc
-	$(INSTALL) asccalc /usr/local/bin
+	$(INSTALL) asccalc $(DESTDIR)
