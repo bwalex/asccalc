@@ -121,15 +121,21 @@ where the trailing semicolon (';') is optional.
 
 Flow control
 --------
-if/else and while flow control is available.
+if/elsif/else and while flow control is available.
 
 The conditional construct if is as follows, where the 'else LISTING' part
 is optional,
 
     if CONDITION then LISTING else LISTING fi
 
+A conditional construct can also contain any number of elsifs:
+
+    if CONDITION then LISTING elsif CONDITION then LISTING else LISTING fi
+
+    if CONDITION then LISTING elsif CONDITION then LISTING elsif CONDITION then LISTING else LISTING fi
+
 For incomplete if statements (i.e. lacking else) a default value of 0 is
-returned if the condition is false. Otherwise the value of the last expression
+returned if no condition matches. Otherwise the value of the last expression
 to be evaluated in a LISTING is returned.
 The condition can be any statement (see above) that is considered true
 if it evaluates to a non-zero value. The LISTING is a series of statements

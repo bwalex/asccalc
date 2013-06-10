@@ -30,7 +30,7 @@
 
 %token EOL
 
-%token IF THEN ELSE FI WHILE DO DONE FUNCTION ENDFUNCTION
+%token IF THEN ELSE ELSIF FI WHILE DO DONE FUNCTION ENDFUNCTION
 
 %nonassoc <ct> CMP
 
@@ -45,7 +45,7 @@
 %nonassoc <s> PSELS
 
 
-%type <a> exp stmt list
+%type <a> exp stmt list final_elsif conditional_stmt elsifs
 %type <el> explist
 %type <nl> namelist
 
@@ -53,9 +53,22 @@
 
 %%
 
+final_elsif:  ELSIF exp THEN list FI           { $$ = ast_newflow(FLOW_IF, $2, $4, NULL); }
+            | ELSIF exp THEN list ELSE list FI { $$ = ast_newflow(FLOW_IF, $2, $4, $6);   }
+;
 
-stmt:     IF exp THEN list FI             { $$ = ast_newflow(FLOW_IF, $2, $4, NULL); }
-        | IF exp THEN list ELSE list FI   { $$ = ast_newflow(FLOW_IF, $2, $4, $6); }
+elsifs:  final_elsif                { $$ = $1;   }
+       | ELSIF exp THEN list elsifs { $$ = ast_newflow(FLOW_IF, $2, $4, $5); }
+;
+
+conditional_stmt:  IF exp THEN list FI           { $$ = ast_newflow(FLOW_IF, $2, $4, NULL); }
+                 | IF exp THEN list ELSE list FI { $$ = ast_newflow(FLOW_IF, $2, $4, $6);   }
+                 | IF exp THEN list elsifs       { $$ = ast_newflow(FLOW_IF, $2, $4, $5);   }
+;
+
+
+
+stmt:     conditional_stmt
         | WHILE exp DO list DONE          { $$ = ast_newflow(FLOW_WHILE, $2, $4, NULL); }
 ;
 

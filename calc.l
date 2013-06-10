@@ -78,6 +78,7 @@ PSELS	(\[[0-9]+\])
 "if"          { ++nesting; return IF; }
 "then"        {            return THEN; }
 "else"        {            return ELSE; }
+"elsif"       {            return ELSIF; }
 "fi"          { --nesting; return FI; }
 "while"       { ++nesting; return WHILE; }
 "do"          {            return DO; }
