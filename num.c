@@ -396,6 +396,11 @@ num_int_part_sel(pseltype_t op_type, num_t hi, num_t lo, num_t a)
 		break;
 
 	case PSEL_DRANGE:
+		if (mpz_cmp_si(Z(lo), 0L) < 0) {
+			yyerror("low index of part select operation must be "
+			    "positive");
+			return NULL;
+		}
 		mpz_sub_ui(Z(lo), Z(lo), 1UL);
 		mpz_sub(Z(lo), Z(hi), Z(lo));
 		break;
