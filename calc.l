@@ -23,17 +23,10 @@ char *incpath = NULL;
 EXP	([Ee][-+]?[0-9]+)
 SUFFIX	([afpnumkMGTPE])
 
-/* part select */
-PSEL	(\[[0-9]+[-+]?:[0-9]+\])
-PSELS	(\[[0-9]+\])
-
 %x reqb
 %x reqstr
 
 %%
-
-{PSEL}  { yylval.s = strdup(yytext); return PSEL; }
-{PSELS} { yylval.s = strdup(yytext); return PSELS; }
 
 "**" |
 "^^"    { return POW; }
@@ -44,6 +37,8 @@ PSELS	(\[[0-9]+\])
 "=="    { yylval.ct = CMP_EQ; return CMP; }
 ">"     { yylval.ct = CMP_GT; return CMP; }
 "<"     { yylval.ct = CMP_LT; return CMP; }
+
+"-:"    { return DPSEL; }
 
  /* single character ops */
 "+" |
@@ -57,7 +52,10 @@ PSELS	(\[[0-9]+\])
 ";" |
 "!" |
 "(" |
-")"     { return yytext[0]; }
+")" |
+"[" |
+"]" |
+":"     { return yytext[0]; }
 
 "or" |
 "OR" |

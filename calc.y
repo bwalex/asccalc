@@ -33,6 +33,9 @@
 %token IF THEN ELSE ELSIF FI WHILE DO DONE FUNCTION ENDFUNCTION
 
 %nonassoc <ct> CMP
+%nonassoc DPSEL
+%nonassoc ':'
+%nonassoc '[' ']'
 
 %right '='
 %left '-' '+' OR XOR
@@ -41,11 +44,9 @@
 %nonassoc UMINUS UNEG
 %right POW
 %nonassoc '!'
-%nonassoc <s> PSEL
-%nonassoc <s> PSELS
 
 
-%type <a> exp stmt list final_elsif conditional_stmt elsifs
+%type <a> exp stmt list final_elsif conditional_stmt elsifs partsel
 %type <el> explist
 %type <nl> namelist
 
@@ -89,6 +90,12 @@ clist: /* nothing */
 ;
 
 
+partsel:   exp '[' exp ']'              { $$ = ast_newpsel(PSEL_SINGLE, $1, $3, NULL); }
+         | exp '[' exp ':' exp ']'      { $$ = ast_newpsel(PSEL_FRANGE, $1, $3, $5);   }
+         | exp '[' exp DPSEL exp ']'    { $$ = ast_newpsel(PSEL_DRANGE, $1, $3, $5);   }
+;
+
+
 exp: exp CMP exp          { $$ = ast_newcmp($2, $1, $3); }
    | exp '+' exp          { $$ = ast_new(OP_ADD, $1,$3); }
    | exp '-' exp          { $$ = ast_new(OP_SUB, $1,$3); }
@@ -105,8 +112,7 @@ exp: exp CMP exp          { $$ = ast_newcmp($2, $1, $3); }
    | '-' exp %prec UMINUS { $$ = ast_new(OP_UMINUS, $2, NULL); }
    | '~' exp %prec UNEG   { $$ = ast_new(OP_UINV,   $2, NULL); }
    | exp '!'              { $$ = ast_new(OP_FAC,    $1, NULL); }
-   | exp PSEL             { $$ = ast_newpsel(       $1, $2  ); }
-   | exp PSELS            { $$ = ast_newpsel(       $1, $2  ); }
+   | partsel              { $$ = $1; }
    | NUM                  { $$ = $1; }
    | NAME '(' explist ')' { $$ = ast_newcall($1, $3); }
    | NAME                 { $$ = ast_newref($1); }

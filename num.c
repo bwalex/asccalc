@@ -375,38 +375,67 @@ num_int_one_op(optype_t op_type, num_t a)
 
 
 num_t
-num_int_part_sel(char op, int hi, int lo, num_t a)
+num_int_part_sel(pseltype_t op_type, num_t hi, num_t lo, num_t a)
 {
 	num_t r, m;
-	int mask_shl;
+	unsigned long mask_shl, lo_ui;
 
 	r = num_new_z(N_TEMP, NULL);
 	m = num_new_z(N_TEMP, NULL);
 	a = num_new_z(N_TEMP, a);
+	hi = num_new_z(N_TEMP, hi);
+	if (lo != NULL)
+		lo = num_new_z(N_TEMP, lo);
 
-	switch (op) {
-	case ':':
+	switch (op_type) {
+	case PSEL_SINGLE:
+		lo = num_new_z(N_TEMP, hi);
 		break;
 
-	case '-':
-		lo = 1 + hi - lo;
+	case PSEL_FRANGE:
 		break;
 
-	default:
-		yyerror("Unknown op in num_int_part_sel");
+	case PSEL_DRANGE:
+		mpz_sub_ui(Z(lo), Z(lo), 1UL);
+		mpz_sub(Z(lo), Z(hi), Z(lo));
+		break;
 	}
 
-	mask_shl = 1+(hi-lo);
+	if (mpz_cmp_si(Z(hi), 0L) < 0) {
+		yyerror("high index of part select operation must be "
+		    "positive");
+		return NULL;
+	}
+
+	if (mpz_cmp_si(Z(lo), 0L) < 0) {
+		yyerror("low index of part select operation must be "
+		    "positive");
+		return NULL;
+	}
+
+	if (!mpz_fits_ulong_p(Z(hi))) {
+		yyerror("high index of part select operation needs to fit "
+		    "into an unsigned long C datatype");
+		return NULL;
+	}
+
+	if (!mpz_fits_ulong_p(Z(lo))) {
+		yyerror("low index of part select operation needs to fit "
+		    "into an unsigned long C datatype");
+		return NULL;
+	}
+
+	lo_ui = mpz_get_ui(Z(lo));
+	mask_shl = 1 + (mpz_get_ui(Z(hi)) - lo_ui);
 
 	/*
 	 * We do the part sel by:
 	 *  (1) shifting right by 'lo'
 	 *  (2) anding with ((1 << mask_shl)-1)
 	 */
-	mpz_div_2exp(Z(r), Z(a), (unsigned long int)lo);
-
+	mpz_div_2exp(Z(r), Z(a), lo_ui);
 	mpz_set_ui(Z(m), 1UL);
-	mpz_mul_2exp(Z(m), Z(m), (unsigned long)mask_shl);
+	mpz_mul_2exp(Z(m), Z(m), mask_shl);
 	mpz_sub_ui(Z(m), Z(m), 1UL);
 
 	mpz_and(Z(r), Z(r), Z(m));

@@ -72,3 +72,10 @@ typedef enum FLOW_TYPE
 	FLOW_IF,
 	FLOW_WHILE
 } flowtype_t;
+
+typedef enum PSEL_TYPE
+{
+	PSEL_SINGLE, /* single bit */
+	PSEL_FRANGE, /* fixed range */
+	PSEL_DRANGE  /* descending dynamic range */
+} pseltype_t;
