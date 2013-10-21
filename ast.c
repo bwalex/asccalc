@@ -429,7 +429,7 @@ eval(ast_t a, hashtable_t vartbl)
 		break;
 
 	case OP_CALL:
-		n = call_fun(((astcall_t) a)->name, ((astcall_t) a)->l);
+		n = call_fun(((astcall_t) a)->name, ((astcall_t) a)->l, vartbl);
 		break;
 
 	default:

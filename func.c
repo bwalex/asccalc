@@ -209,7 +209,7 @@ builtin_mpz_fun_two_arg_ul(void *priv, char *s, int nargs, num_t * argv)
 
 
 num_t
-call_fun(char *s, explist_t l)
+call_fun(char *s, explist_t l, hashtable_t vartbl)
 {
 	func_t fn;
 	explist_t p;
@@ -249,7 +249,7 @@ call_fun(char *s, explist_t l)
 
 	i = 0;
 	for (p = l; p != NULL; p = p->next) {
-	  args[i++] = eval(p->ast, NULL);
+	  args[i++] = eval(p->ast, vartbl);
 	}
 
 	if (fn->builtin) {

@@ -56,7 +56,7 @@ typedef struct func
 
 int funinit(void);
 func_t funlookup(const char *s, int alloc);
-num_t call_fun(char *s, explist_t l);
+num_t call_fun(char *s, explist_t l, hashtable_t vartbl);
 void funlist(void);
 void user_newfun(char *name, namelist_t nl, ast_t a);
 
