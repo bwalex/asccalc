@@ -192,6 +192,9 @@ After the 'function' token, a newline can be introduced at any time
 until the closing 'endfunction'.
 All user-defined variables assigned in the body of the function are
 local to the function.
+The scope inside a function is the global scope and the direct
+arguments to the function. It does not include any other scope, e.g.
+the scope of the calling function for a nested function.
 
 Example:
 
