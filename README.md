@@ -221,7 +221,7 @@ Comments can either start with // or #
 Keywords (i.e. reserved words)
 ---------
 if, then, else, fi, while, do, done, function, endfunction, ls, lsfn,
-quit, help, mode, and, or, xor
+quit, exit, help, mode, and, or, xor
 
 
 
@@ -239,6 +239,7 @@ mode <mode>  Switches to output mode <MODE>, where mode is one of
                h or x - for hexadecimal output
                o - for octal output
 quit         Exits the program
+exit         Exits the program
 ```
 
 

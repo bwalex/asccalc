@@ -277,4 +277,5 @@ help(void)
 	printf("\t\t\t  of the following: b,d,h,o,x - for binary, decimal, \n");
 	printf("\t\t\t  hexadecimal, octal, hexadecimal output\n\n");
 	printf("\tquit\t\t- Exits the program\n\n");
+	printf("\texit\t\t- Exits the program\n\n");
 }

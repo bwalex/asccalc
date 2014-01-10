@@ -367,7 +367,7 @@ num_int_one_op(optype_t op_type, num_t a)
 		break;
 
 	default:
-		yyerror("Unknown op in num_int_two_op");
+		yyerror("Unknown op in num_int_one_op");
 	}
 
 	return r;

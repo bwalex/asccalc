@@ -105,6 +105,7 @@ SUFFIX	([afpnumkMGTPE])
 ^"ls\n"           { varlist(); }
 ^"lsfn\n"         { funlist(); }
 ^"quit\n"         { exit(0);   }
+^"exit\n"         { exit(0);   }
 ^"help\n"         { help();    }
 
  /* names; symtype returns either FUNC or VAR (if in doubt, VAR) */
