@@ -37,8 +37,10 @@ typedef int (*mpfr_fun_two_arg_ul_t) (mpfr_t, mpfr_t, unsigned long,
 
 typedef void (*mpz_fun_one_arg_t) (mpz_t, mpz_t);
 typedef void (*mpz_fun_one_arg_ul_t) (mpz_t, unsigned long);
+typedef mp_bitcnt_t (*mpz_fun_one_arg_bitcnt_t) (mpz_t);
 typedef void (*mpz_fun_two_arg_t) (mpz_t, mpz_t, mpz_t);
 typedef void (*mpz_fun_two_arg_ul_t) (mpz_t, mpz_t, unsigned long);
+typedef mp_bitcnt_t (*mpz_fun_two_arg_bitcnt_t) (mpz_t, mpz_t);
 
 typedef struct func
 {

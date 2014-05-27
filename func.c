@@ -168,6 +168,26 @@ builtin_mpz_fun_one_arg_ul(void *priv, char *s, int nargs, num_t * argv)
 
 static
 num_t
+builtin_mpz_fun_one_arg_bitcnt(void *priv, char *s, int nargs, num_t * argv)
+{
+	mpz_fun_one_arg_bitcnt_t fn = priv;
+	mp_bitcnt_t bitcnt;
+	num_t r;
+	num_t a;
+
+	r = num_new_z(N_TEMP, NULL);
+	a = num_new_z(N_TEMP, argv[0]);
+
+	bitcnt = fn(Z(a));
+
+	mpz_init_set_ui(Z(r), (unsigned long)bitcnt);
+
+	return r;
+}
+
+
+static
+num_t
 builtin_mpz_fun_two_arg(void *priv, char *s, int nargs, num_t * argv)
 {
 	mpz_fun_two_arg_t fn = priv;
@@ -203,6 +223,27 @@ builtin_mpz_fun_two_arg_ul(void *priv, char *s, int nargs, num_t * argv)
 	}
 
 	fn(Z(r), Z(a), mpz_get_ui(Z(b)));
+
+	return r;
+}
+
+
+static
+num_t
+builtin_mpz_fun_two_arg_bitcnt(void *priv, char *s, int nargs, num_t * argv)
+{
+	mpz_fun_two_arg_bitcnt_t fn = priv;
+	mp_bitcnt_t bitcnt;
+	num_t r;
+	num_t a, b;
+
+	r = num_new_z(N_TEMP, NULL);
+	a = num_new_z(N_TEMP, argv[0]);
+	b = num_new_z(N_TEMP, argv[1]);
+
+	bitcnt = fn(Z(a), Z(b));
+
+	mpz_init_set_ui(Z(r), (unsigned long)bitcnt);
 
 	return r;
 }
@@ -385,7 +426,11 @@ struct builtin_funcs
   { "fib"       , mpz_fib_ui     , builtin_mpz_fun_one_arg_ul     , 1, 1     },
   { "invert"    , mpz_invert     , builtin_mpz_fun_two_arg        , 2, 2     },
   { "inv"       , mpz_invert     , builtin_mpz_fun_two_arg        , 2, 2     },
-  /* mpz_hamdist ? */
+
+  { "hamdist"   , mpz_hamdist    , builtin_mpz_fun_two_arg_bitcnt , 2, 2     },
+  { "countones" , mpz_popcount   , builtin_mpz_fun_one_arg_bitcnt , 1, 1     },
+  { "popcount"  , mpz_popcount   , builtin_mpz_fun_one_arg_bitcnt , 1, 1     },
+  { "popcnt"    , mpz_popcount   , builtin_mpz_fun_one_arg_bitcnt , 1, 1     },
 
   { "min"       , NULL           , builtin_min                    , 2, 1000  },
   { "max"       , NULL           , builtin_max                    , 2, 1000  },

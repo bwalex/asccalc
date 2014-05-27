@@ -293,6 +293,10 @@ remfac(a,b)   Remove factor b from a
 bin(a,b)      Binomial coefficient (a | b)
 fib(n)        n-th fibonacci number
 inv(a,N)      Find the inverse of a (modulo N)
+hamdist(a,b)  Gives the hamming distance between integers a and b
+countones(a)  Returns the number of 1-bits in integer a
+popcount(a)   Same as countones(a)
+popcnt(a)     Same as countones(a)
 min(a,b,...)  Minimum of a,b,...
 max(a,b,...)  Maximum of a,b,...
 avg(a,b,...)  Average of a,b,...
