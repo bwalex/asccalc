@@ -164,7 +164,7 @@ main(int argc, char *argv[])
 	if (isatty(fileno(stdin))) {
 		printf("ascalc %d.%d - A Simple Console Calculator\n",
 		    MAJ_VER, MIN_VER);
-		printf("Copyright (c) 2012-2013 Alex Hornung\n");
+		printf("Copyright (c) 2012-2014 Alex Hornung\n");
 		printf("Type 'help' for available commands\n");
 		printf("\n");
 	}
