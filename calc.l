@@ -100,8 +100,8 @@ SUFFIX	([afpnumkMGTPE])
 <reqstr>.       { printf("Mystery character: %c\n", yytext[0]); BEGIN 0; return yytext[0]; }
 
  /* Commands */
-^"mode "[bdhox]"\n" { mode_switch(yytext[5]); /* XXX */ printf("mode switch to %c\n", yytext[5]); }
-^"m "[bdhox]"\n"    { mode_switch(yytext[2]); /* XXX */ printf("mode switch to %c\n", yytext[2]); }
+^"mode "[bdhoxs]"\n" { mode_switch(yytext[5]); /* XXX */ printf("mode switch to %c\n", yytext[5]); }
+^"m "[bdhoxs]"\n"    { mode_switch(yytext[2]); /* XXX */ printf("mode switch to %c\n", yytext[2]); }
 ^"ls\n"           { varlist(); }
 ^"lsfn\n"         { funlist(); }
 ^"quit\n"         { exit(0);   }

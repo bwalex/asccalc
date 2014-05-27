@@ -186,12 +186,14 @@ main(int argc, char *argv[])
 
 static char mode = 'd';
 mpfr_rnd_t round_mode = MPFR_RNDN;
+static int scientific_mode = 0;
 
 void
 mode_switch(char new_mode)
 {
 	mode = new_mode;
-	round_mode = (new_mode == 'd') ? MPFR_RNDN : MPFR_RNDZ;
+	round_mode = (new_mode == 'd' || new_mode == 's') ? MPFR_RNDN : MPFR_RNDZ;
+	scientific_mode = (new_mode == 's');
 }
 
 
@@ -225,7 +227,13 @@ test_print_num(num_t n)
 		mpfr_printf("%s%s\n", prefix, s);
 		free(s);
 	} else if (a->num_type == NUM_FP) {
-		mpfr_printf("%Rg\n", F(a));
+		if (scientific_mode) {
+			mpfr_printf("%.R*G\n", round_mode, F(a));
+		} else if (mpfr_integer_p(F(a))) {
+			mpfr_printf("%.0R*f\n", round_mode, F(a));
+		} else {
+			mpfr_printf("%.R*f\n", round_mode, F(a));
+		}
 	} else {
 		printf("invalid!\n");
 	}
@@ -274,8 +282,9 @@ help(void)
 	printf("\tm <MODE>\t- Same as 'mode'\n\n");
 
 	printf("\tmode <MODE>\t- Switches to <MODE>, where mode is one\n");
-	printf("\t\t\t  of the following: b,d,h,o,x - for binary, decimal, \n");
-	printf("\t\t\t  hexadecimal, octal, hexadecimal output\n\n");
+	printf("\t\t\t  of the following: b,d,s,h,o,x - for binary, decimal, \n");
+	printf("\t\t\t  scientific decimal, hexadecimal, octal, hexadecimal, \n");
+	printf("\t\t\t  output\n\n");
 	printf("\tquit\t\t- Exits the program\n\n");
 	printf("\texit\t\t- Exits the program\n\n");
 }

@@ -236,6 +236,7 @@ mode <mode>  Switches to output mode <MODE>, where mode is one of
              the following:
                b - for binary output
                d - for decimal output
+	       s - for decimal scientific output
                h or x - for hexadecimal output
                o - for octal output
 quit         Exits the program
