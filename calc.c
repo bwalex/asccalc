@@ -246,7 +246,7 @@ void
 go(ast_t a)
 {
 	var_t var;
-	num_t ans;
+	num_t ans, old_ans = NULL;
 
 	//printf("Allocations: %d\n", nallocations);
 	ans = eval(a, NULL);
@@ -260,8 +260,12 @@ go(ast_t a)
 
 	var = varlookup("ans", 1);
 	if (var->v != NULL)
-		num_delete(var->v);
+		old_ans = var->v;
+
 	var->v = num_new_fp(0, ans);
+
+	if (old_ans != NULL)
+		num_delete(old_ans);
 
 	num_delete_temp();
 	ast_delete(a);
