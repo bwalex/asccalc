@@ -193,6 +193,7 @@ mode_switch(char new_mode)
 {
 	mode = new_mode;
 	round_mode = (new_mode == 'd' || new_mode == 's') ? MPFR_RNDN : MPFR_RNDZ;
+	mpfr_set_default_rounding_mode(round_mode);
 	scientific_mode = (new_mode == 's');
 }
 
