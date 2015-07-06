@@ -404,7 +404,6 @@ eval(ast_t a, hashtable_t vartbl)
 		break;
 
 	case OP_VARASSIGN:
-		printf("OP_VARASSIGN!\n");
 		l = eval(((astassign_t)a)->v, vartbl);
 		if (l == NULL)
 			return NULL;

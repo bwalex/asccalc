@@ -23,9 +23,6 @@
 #define YY_EXTRA_TYPE struct parse_ctx *
 #define YY_USER_ACTION yylloc->first_line = yylineno;
 
-int linecont = 0;
-int nesting = 0;
-
 char *incpath = NULL;
 %}
 
@@ -83,29 +80,29 @@ SUFFIX	([afpnumkMGTPE])
 "<<"    { return SHL; }
 
  /* keywords */
-"if"          { ++nesting; return IF; }
-"then"        {            return THEN; }
-"else"        {            return ELSE; }
-"elsif"       {            return ELSIF; }
-"fi"          { --nesting; return FI; }
-"while"       { ++nesting; return WHILE; }
-"do"          {            return DO; }
-"done"        { --nesting; return DONE; }
-"function"    { ++nesting; return FUNCTION; }
-"endfunction" { --nesting; return ENDFUNCTION; }
+"if"          { ++yyextra->nesting; return IF; }
+"then"        {                     return THEN; }
+"else"        {                     return ELSE; }
+"elsif"       {                     return ELSIF; }
+"fi"          { --yyextra->nesting; return FI; }
+"while"       { ++yyextra->nesting; return WHILE; }
+"do"          {                     return DO; }
+"done"        { --yyextra->nesting; return DONE; }
+"function"    { ++yyextra->nesting; return FUNCTION; }
+"endfunction" { --yyextra->nesting; return ENDFUNCTION; }
 
 "require"       BEGIN reqb;
 <reqb>[ \t]     /* ignore white space */
 <reqb>\"        BEGIN reqstr;
-<reqb>.         { printf("Mystery character: %c\n", yytext[0]); BEGIN 0; return yytext[0]; }
+<reqb>.         { printf("Unexpected character: %c\n", yytext[0]); BEGIN 0; return yytext[0]; }
 <reqstr>[^\\"]* { incpath = strdup(yytext); }
 <reqstr>\"      {
                   assert(incpath != NULL);
-		  require_file(incpath);
+		  require_file(incpath, 1);
                   free(incpath);
                   BEGIN 0;
                 }
-<reqstr>.       { printf("Mystery character: %c\n", yytext[0]); BEGIN 0; return yytext[0]; }
+<reqstr>.       { printf("Unexpected character: %c\n", yytext[0]); BEGIN 0; return yytext[0]; }
 
  /* Commands */
 ^"mode "[bdhoxs]"\n" { mode_switch(yytext[5]); /* XXX */ printf("mode switch to %c\n", yytext[5]); }
@@ -133,14 +130,14 @@ SUFFIX	([afpnumkMGTPE])
 "#".*   /* ignore comment */
 "//".*  /* ignore comment */
 [ \t]   /* ignore white space */
-\\\n    { linecont = 1; } /* ignore line continuation */
-"\n"    { linecont = 0; if (nesting == 0) return EOL; }
+\\\n    { yyextra->linecont = 1; } /* ignore line continuation */
+"\n"    { yyextra->linecont = 0; if (yyextra->nesting == 0) return EOL; }
 
 
 <<EOF>> {
-          printf("LEX: EOF\n");
+	  // XXX: yyterminate?
           yyterminate();
         }
 
-.       { printf("Mystery character: %c\n", yytext[0]); return yytext[0]; }
+.       { printf("Unexpected character: %c\n", yytext[0]); return yytext[0]; }
 %%

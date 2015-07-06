@@ -36,9 +36,12 @@ yyerror(YYLTYPE *locp, struct parse_ctx *ctx, const char *s, ...)
 
 	va_start(ap, s);
 
-	fprintf(stderr, "%d: error: ", locp->first_line);
+	fprintf(stderr, "%s:%d: error: ", ctx->filename ? ctx->filename : "<unknown>", locp->first_line);
 	vfprintf(stderr, s, ap);
 	fprintf(stderr, "\n");
+
+	ctx->nesting = 0;
+	ctx->linecont = 0;
 }
 %}
 
@@ -107,9 +110,9 @@ list:     /* nothing */   { $$ = NULL; }
 
 clist: /* nothing */
         | clist EOL
-        | clist stmt EOL { go($2); }
-        | clist exp EOL { go($2); }
-        | clist exp ';' EOL { go($2); }
+        | clist stmt EOL { go(ctx, $2); }
+        | clist exp EOL { go(ctx, $2); }
+        | clist exp ';' EOL { go(ctx, $2); }
         | clist FUNCTION NAME '(' namelist ')' '=' list ENDFUNCTION EOL { user_newfun($3, $5, $8); }
         | error EOL  { yyerrok;  }/* on error, skip until end of line */
 ;

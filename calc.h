@@ -33,9 +33,9 @@
 #include "parse_ctx.h"
 
 #define MAX_HIST_LEN	1000
-#define HISTORY_FILE	"~/.asccalc.history"
-#define RC_DIRECTORY	"~/.asccalc.rc.d"
-#define RC_FILE		"~/.asccalc.rc"
+#define HISTORY_FILE	filename_in_home(".asccalc.history")
+#define RC_DIRECTORY	filename_in_home(".asccalc.rc.d")
+#define RC_FILE		filename_in_home(".asccalc.rc")
 
 #define BUCKET_MANUAL 0
 #define BUCKET_AST 1
@@ -46,7 +46,7 @@
 
 extern mpfr_rnd_t round_mode;
 
-void go(ast_t a);
+void go(struct parse_ctx *ctx, ast_t a);
 void test_print_num(num_t n);
 void yyxerror(const char *s, ...);
 void free_temp_bucket(void);

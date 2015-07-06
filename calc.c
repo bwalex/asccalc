@@ -33,7 +33,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <pwd.h>
 #include <dirent.h>
+#include <signal.h>
 #include <assert.h>
 
 #include <gmp.h>
@@ -53,8 +55,17 @@
 #include "calc.tab.h"
 #include "lex.yy.h"
 
-extern int nesting;
-extern int linecont;
+static
+char *
+filename_in_home(const char *fname)
+{
+	static char p[4096];
+	struct passwd *pw = getpwuid(getuid());
+
+	snprintf(p, sizeof(p)-1, "%s/%s", pw->pw_dir, fname);
+
+	return p;
+}
 
 
 void
@@ -68,19 +79,20 @@ yyxerror(const char *s, ...)
 	vfprintf(stderr, s, ap);
 	fprintf(stderr, "\n");
 
-	nesting = 0;
+	//nesting = 0;
+	/* XXX: hack ^ */
 }
 
 static
 char *
-prompt(void)
+prompt(struct parse_ctx *ctx)
 {
 	static char buf[1024];
 	int i;
 
-	if (nesting || linecont) {
+	if (ctx->nesting || ctx->linecont) {
 		snprintf(buf, sizeof(buf), "..");
-		for (i = 0; i < nesting; i++)
+		for (i = 0; i < ctx->nesting; i++)
 			strcat(buf, "..");
 
 		strcat(buf, " ");
@@ -136,8 +148,8 @@ yywrap(void *scanner)
 
 	ctx = yyget_extra(scanner);
 	if (ctx->interactive) {
-		if (nesting || linecont) {
-			if ((line = linenoise(prompt())) != NULL) {
+		if (ctx->nesting || ctx->linecont) {
+			if ((line = linenoise(prompt(ctx))) != NULL) {
 				linenoiseHistoryAdd(line);
 				len = strlen(line);
 				line = realloc(line, len+2);
@@ -145,19 +157,18 @@ yywrap(void *scanner)
 				line[len+1] = '\0';
 				yy_scan_string(line, scanner);
 				free(line);
+				return 0;
+			} else {
+				fprintf(stderr, "Interrupted, exiting.\n");
+				graceful_exit();
 			}
-			return 0;
 		}
 	}
 
 	return 1;
 }
 
-// TODO: capture ^D, ^C, exit gracefully
-// TODO: linenoiseHistorySave, linnoiseHistoryLoad
-// TODO: ~/.asccalc.history
-// TODO: ~/.asccalc.rc.d
-// TODO: ~/.asccalc.rc
+// TODO: join line continuations together before saving into history
 
 void
 graceful_exit(void)
@@ -171,15 +182,38 @@ graceful_exit(void)
 			fprintf(stderr, "Couldn't save command history!\n");
 		}
 	}
+
+	exit(0);
+}
+
+static
+void
+sig_handler(int sig)
+{
+	switch (sig) {
+	case SIGTERM:
+		fprintf(stderr, "Caught SIGTERM, exiting.\n");
+		graceful_exit();
+		break;
+	case SIGQUIT:
+		fprintf(stderr, "Caught SIGQUIT, exiting.\n");
+		graceful_exit();
+		break;
+	default:
+		fprintf(stderr, "Caught unexpected signal=%d\n", sig);
+	}
 }
 
 static
 int
-require_fd(FILE *fp, const char *fname)
+require_fd(FILE *fp, const char *fname, int silent)
 {
 	struct parse_ctx ctx;
 
 	ctx.interactive = 0;
+	ctx.silent = silent;
+	ctx.linecont = ctx.nesting = 0;
+	ctx.filename = fname;
 	yylex_init(&ctx.scanner);
 	yyset_extra(&ctx, ctx.scanner);
 	yyset_in(fp, ctx.scanner);
@@ -189,7 +223,7 @@ require_fd(FILE *fp, const char *fname)
 	return 0;
 }
 int
-require_file(const char *file)
+require_file(const char *file, int silent)
 {
 	FILE *fp;
 	int error;
@@ -197,7 +231,7 @@ require_file(const char *file)
 	if ((fp = fopen(file, "r")) == NULL)
 		return -1;
 
-	error = require_fd(fp, file);
+	error = require_fd(fp, file, silent);
 
 	if (isatty(fileno(stdin))) {
 		if (error)
@@ -211,29 +245,36 @@ require_file(const char *file)
 	return error;
 }
 
+static
+int
+dot_filter(const struct dirent *de)
+{
+	if (de->d_name[0] == '.')
+		return 0;
+	return 1;
+}
+
+static
 void
 load_rc(void)
 {
+	struct dirent **namelist;
 	char p[4096];
 	FILE *fp;
 	DIR *dp;
+	int n;
 
 	/* Load rc file, if it exists */
-	require_file(RC_FILE);
+	require_file(RC_FILE, 1);
 
 	/* Load each file, in order, in the rc directory */
-	if ((dp = opendir(RC_DIRECTORY)) != NULL) {
-		struct dirent **namelist;
-		int n;
-
-		n = scandir(dp, &namelist, NULL, alphasort);
+	if ((n = scandir(RC_DIRECTORY, &namelist, dot_filter, alphasort)) >= 0) {
 		for (int i = 0; i < n; i++) {
-			snprintf(p, sizeof(p)-1, "%s/%s", RC_DIRECTORY, namelist[n]->d_name);
-			require_file(p);
-			free(namelist[n]);
+			snprintf(p, sizeof(p)-1, "%s/%s", RC_DIRECTORY, namelist[i]->d_name);
+			require_file(p, 1);
+			free(namelist[i]);
 		}
-		if (n >= 0)
-			free(namelist);
+		free(namelist);
 	}
 }
 
@@ -250,25 +291,33 @@ main(int argc, char *argv[])
 	num_init();
 	funinit();
 
+	signal(SIGTERM, sig_handler);
+	signal(SIGQUIT, sig_handler);
+
 	linenoiseHistorySetMaxLen(MAX_HIST_LEN);
 	linenoiseSetCompletionCallback(linenoise_completion);
 
 	if (isatty(fileno(stdin))) {
 		printf("ascalc %d.%d - A Simple Console Calculator\n",
 		    MAJ_VER, MIN_VER);
-		printf("Copyright (c) 2012-2015 Alex Hornung\n");
+		printf("Copyright (c) 2012-2015 Alex Hornung\n\n");
+
+		load_rc();
 
 		if ((error = linenoiseHistoryLoad(HISTORY_FILE)) == 0) {
-			printf("Loaded previous command history from %s\n", HISTORY_FILE);
+			printf("Loaded previous command history from %s\n\n", HISTORY_FILE);
 		}
 		printf("Type 'help' for available commands\n");
 		printf("\n");
 
 		ctx.interactive = 1;
+		ctx.silent = 0;
+		ctx.linecont = ctx.nesting = 0;
+		ctx.filename = "<stdin>";
 		yylex_init(&ctx.scanner);
 		yyset_extra(&ctx, ctx.scanner);
 
-		while ((line = linenoise(prompt())) != NULL) {
+		while ((line = linenoise(prompt(&ctx))) != NULL) {
 			linenoiseHistoryAdd(line);
 			len = strlen(line);
 			line = realloc(line, len + 2);
@@ -278,8 +327,11 @@ main(int argc, char *argv[])
 			free(line);
 			yyparse(&ctx);
 		}
+		fprintf(stderr, "Interrupted, exiting.\n");
+		graceful_exit();
 	} else {
-		require_fd(stdin, "<stdin>");
+		load_rc();
+		require_fd(stdin, "<stdin>", 0);
 	}
 
 	return 0;
@@ -346,7 +398,7 @@ test_print_num(num_t n)
 extern int nallocations;
 
 void
-go(ast_t a)
+go(struct parse_ctx *ctx, ast_t a)
 {
 	var_t var;
 	num_t ans, old_ans = NULL;
@@ -357,9 +409,11 @@ go(ast_t a)
 	if (ans == NULL)
 		return;
 
-	if (isatty(fileno(stdin)))
-		printf("ans = ");
-	test_print_num(ans);
+	if (!ctx->silent) {
+		if (isatty(fileno(stdin)))
+			printf("ans = ");
+		test_print_num(ans);
+	}
 
 	var = varlookup("ans", 1);
 	if (var->v != NULL)
