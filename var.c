@@ -101,7 +101,7 @@ ext_varlookup(hashtable_t vtbl, const char *s, int alloc)
 		return var;
 
 	if ((var = alloc_safe_mem(BUCKET_VAR, sizeof(*var))) == NULL) {	/* BUCKET_MANUAL */
-		yyerror("ENOMEM");
+		yyxerror("ENOMEM");
 		exit(1);
 	}
 
@@ -156,7 +156,7 @@ _var_iterator(void *priv, hashobj_t obj)
 		ip->allocsize += 32;
 		ip->s = realloc(ip->s, ip->allocsize * sizeof(char *));
 		if (ip->s == NULL) {
-			yyerror("ENOMEM");
+			yyxerror("ENOMEM");
 			exit(1);
 		}
 	}

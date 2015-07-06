@@ -27,11 +27,13 @@
  * SUCH DAMAGE.
  */
 
+#include <sys/types.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <dirent.h>
 #include <assert.h>
 
 #include <gmp.h>
@@ -48,6 +50,7 @@
 #include "calc.h"
 #include "func.h"
 #include "safe_mem.h"
+#include "calc.tab.h"
 #include "lex.yy.h"
 
 extern int nesting;
@@ -55,13 +58,13 @@ extern int linecont;
 
 
 void
-yyerror(const char *s, ...)
+yyxerror(const char *s, ...)
 {
 	va_list ap;
 
 	va_start(ap, s);
 
-	fprintf(stderr, "%d: error: ", yylineno);
+	fprintf(stderr, "%d: error: ", 0 /* XXX: HACK! */);
 	vfprintf(stderr, s, ap);
 	fprintf(stderr, "\n");
 
@@ -125,34 +128,123 @@ linenoise_completion(const char *buf, linenoiseCompletions *lc) {
 
 
 int
-yywrap(void)
+yywrap(void *scanner)
 {
+	struct parse_ctx *ctx;
 	char *line;
 	int len;
 
-	if (nesting || linecont) {
-		if ((line = linenoise(prompt())) != NULL) {
-			linenoiseHistoryAdd(line);
-			len = strlen(line);
-			line = realloc(line, len+2);
-			line[len] = '\n';
-			line[len+1] = '\0';
-			yy_scan_string(line);
-			free(line);
+	ctx = yyget_extra(scanner);
+	if (ctx->interactive) {
+		if (nesting || linecont) {
+			if ((line = linenoise(prompt())) != NULL) {
+				linenoiseHistoryAdd(line);
+				len = strlen(line);
+				line = realloc(line, len+2);
+				line[len] = '\n';
+				line[len+1] = '\0';
+				yy_scan_string(line, scanner);
+				free(line);
+			}
+			return 0;
 		}
-		return 0;
 	}
 
 	return 1;
 }
 
+// TODO: capture ^D, ^C, exit gracefully
+// TODO: linenoiseHistorySave, linnoiseHistoryLoad
+// TODO: ~/.asccalc.history
+// TODO: ~/.asccalc.rc.d
+// TODO: ~/.asccalc.rc
+
+void
+graceful_exit(void)
+{
+	int error;
+
+	if (isatty(fileno(stdin))) {
+		if ((error = linenoiseHistorySave(HISTORY_FILE)) == 0) {
+			printf("Saved command history to %s\n", HISTORY_FILE);
+		} else {
+			fprintf(stderr, "Couldn't save command history!\n");
+		}
+	}
+}
+
+static
+int
+require_fd(FILE *fp, const char *fname)
+{
+	struct parse_ctx ctx;
+
+	ctx.interactive = 0;
+	yylex_init(&ctx.scanner);
+	yyset_extra(&ctx, ctx.scanner);
+	yyset_in(fp, ctx.scanner);
+	yyparse(&ctx);
+	yylex_destroy(ctx.scanner);
+
+	return 0;
+}
+int
+require_file(const char *file)
+{
+	FILE *fp;
+	int error;
+
+	if ((fp = fopen(file, "r")) == NULL)
+		return -1;
+
+	error = require_fd(fp, file);
+
+	if (isatty(fileno(stdin))) {
+		if (error)
+			printf("Error loading file: %s\n", file);
+		else
+			printf("Loaded file: %s\n", file);
+	}
+
+	fclose(fp);
+
+	return error;
+}
+
+void
+load_rc(void)
+{
+	char p[4096];
+	FILE *fp;
+	DIR *dp;
+
+	/* Load rc file, if it exists */
+	require_file(RC_FILE);
+
+	/* Load each file, in order, in the rc directory */
+	if ((dp = opendir(RC_DIRECTORY)) != NULL) {
+		struct dirent **namelist;
+		int n;
+
+		n = scandir(dp, &namelist, NULL, alphasort);
+		for (int i = 0; i < n; i++) {
+			snprintf(p, sizeof(p)-1, "%s/%s", RC_DIRECTORY, namelist[n]->d_name);
+			require_file(p);
+			free(namelist[n]);
+		}
+		if (n >= 0)
+			free(namelist);
+	}
+}
 
 int
 main(int argc, char *argv[])
 {
+	struct parse_ctx ctx;
 	char *progname = argv[0];
 	char *line;
 	int len;
+	int error;
 
 	varinit();
 	num_init();
@@ -164,20 +256,30 @@ main(int argc, char *argv[])
 	if (isatty(fileno(stdin))) {
 		printf("ascalc %d.%d - A Simple Console Calculator\n",
 		    MAJ_VER, MIN_VER);
-		printf("Copyright (c) 2012-2014 Alex Hornung\n");
+		printf("Copyright (c) 2012-2015 Alex Hornung\n");
+
+		if ((error = linenoiseHistoryLoad(HISTORY_FILE)) == 0) {
+			printf("Loaded previous command history from %s\n", HISTORY_FILE);
+		}
 		printf("Type 'help' for available commands\n");
 		printf("\n");
-	}
 
-	while ((line = linenoise(prompt())) != NULL) {
-		linenoiseHistoryAdd(line);
-		len = strlen(line);
-		line = realloc(line, len + 2);
-		line[len] = '\n';
-		line[len+1] = '\0';
-		yy_scan_string(line);
-		free(line);
-		yyparse();
+		ctx.interactive = 1;
+		yylex_init(&ctx.scanner);
+		yyset_extra(&ctx, ctx.scanner);
+
+		while ((line = linenoise(prompt())) != NULL) {
+			linenoiseHistoryAdd(line);
+			len = strlen(line);
+			line = realloc(line, len + 2);
+			line[len] = '\n';
+			line[len+1] = '\0';
+			yy_scan_string(line, ctx.scanner);
+			free(line);
+			yyparse(&ctx);
+		}
+	} else {
+		require_fd(stdin, "<stdin>");
 	}
 
 	return 0;
@@ -222,7 +324,7 @@ test_print_num(num_t n)
 
 	if (a->num_type == NUM_INT) {
 		if ((s = mpz_get_str(NULL, base, Z(a))) == NULL) {
-			yyerror("ENOMEM");
+			yyxerror("ENOMEM");
 			exit(1);
 		}
 		mpfr_printf("%s%s\n", prefix, s);

@@ -113,7 +113,7 @@ num_new(int flags)
 	num_t r;
 
 	if ((r = alloc_safe_mem((flags & N_TEMP) ? BUCKET_NUM_TEMP : BUCKET_NUM, sizeof(*r))) == NULL) {
-		yyerror("ENOMEM");
+		yyxerror("ENOMEM");
 		exit(1);
 	}
 
@@ -219,7 +219,7 @@ num_new_from_str(int flags, numtype_t typehint, char *str)
 
 	if (type == NUM_INT) {
 		if ((r = mpz_init_set_str(Z(n), str, base)) != 0) {
-			yyerror("mpz_init_set_str");
+			yyxerror("mpz_init_set_str");
 			mpz_clear(Z(n));
 		}
 	} else {
@@ -271,7 +271,7 @@ num_new_from_str(int flags, numtype_t typehint, char *str)
 				exp = 0.000000000000000001;
 				break;
 			default:
-				yyerror("Unknown suffix");
+				yyxerror("Unknown suffix");
 				exit(1);
 			}
 
@@ -350,7 +350,7 @@ num_is_zero(num_t a)
 		break;
 
 	default:
-		yyerror("invalid number at num_is_zero!");
+		yyxerror("invalid number at num_is_zero!");
 		exit(1);
 	}
 
@@ -382,7 +382,7 @@ num_int_two_op(optype_t op_type, num_t a, num_t b)
 
 	case OP_SHR:
 		if (!mpz_fits_ulong_p(Z(b))) {
-			yyerror
+			yyxerror
 			    ("Second argument to shift needs to fit into an unsigned long C datatype");
 			return NULL;
 		}
@@ -391,7 +391,7 @@ num_int_two_op(optype_t op_type, num_t a, num_t b)
 
 	case OP_SHL:
 		if (!mpz_fits_ulong_p(Z(b))) {
-			yyerror
+			yyxerror
 			    ("Second argument to shift needs to fit into an unsigned long C datatype");
 			return NULL;
 		}
@@ -399,7 +399,7 @@ num_int_two_op(optype_t op_type, num_t a, num_t b)
 		break;
 
 	default:
-		yyerror("Unknown op in num_int_two_op");
+		yyxerror("Unknown op in num_int_two_op");
 	}
 
 	return r;
@@ -421,7 +421,7 @@ num_int_one_op(optype_t op_type, num_t a)
 
 	case OP_FAC:
 		if (!mpz_fits_ulong_p(Z(a))) {
-			yyerror
+			yyxerror
 			    ("Argument to factorial needs to fit into an unsigned long C datatype");
 			return NULL;
 		}
@@ -429,7 +429,7 @@ num_int_one_op(optype_t op_type, num_t a)
 		break;
 
 	default:
-		yyerror("Unknown op in num_int_one_op");
+		yyxerror("Unknown op in num_int_one_op");
 	}
 
 	return r;
@@ -459,7 +459,7 @@ num_int_part_sel(pseltype_t op_type, num_t hi, num_t lo, num_t a)
 
 	case PSEL_DRANGE:
 		if (mpz_cmp_si(Z(lo), 0L) < 0) {
-			yyerror("low index of part select operation must be "
+			yyxerror("low index of part select operation must be "
 			    "positive");
 			return NULL;
 		}
@@ -469,25 +469,25 @@ num_int_part_sel(pseltype_t op_type, num_t hi, num_t lo, num_t a)
 	}
 
 	if (mpz_cmp_si(Z(hi), 0L) < 0) {
-		yyerror("high index of part select operation must be "
+		yyxerror("high index of part select operation must be "
 		    "positive");
 		return NULL;
 	}
 
 	if (mpz_cmp_si(Z(lo), 0L) < 0) {
-		yyerror("low index of part select operation must be "
+		yyxerror("low index of part select operation must be "
 		    "positive");
 		return NULL;
 	}
 
 	if (!mpz_fits_ulong_p(Z(hi))) {
-		yyerror("high index of part select operation needs to fit "
+		yyxerror("high index of part select operation needs to fit "
 		    "into an unsigned long C datatype");
 		return NULL;
 	}
 
 	if (!mpz_fits_ulong_p(Z(lo))) {
-		yyerror("low index of part select operation needs to fit "
+		yyxerror("low index of part select operation needs to fit "
 		    "into an unsigned long C datatype");
 		return NULL;
 	}
@@ -585,7 +585,7 @@ num_float_two_op(optype_t op_type, num_t a, num_t b)
 		break;
 
 	default:
-		yyerror("Unknown op in num_float_two_op");
+		yyxerror("Unknown op in num_float_two_op");
 	}
 
 	return r;
@@ -621,7 +621,7 @@ num_cmp(cmptype_t ct, num_t a, num_t b)
 	case CMP_GT: mpz_set_ui(Z(r), (s >  0) ? 1 : 0); break;
 	case CMP_LT: mpz_set_ui(Z(r), (s <  0) ? 1 : 0); break;
 	default:
-		yyerror("Unknown cmp in num_cmp");
+		yyxerror("Unknown cmp in num_cmp");
 	}
 
 	return r;
@@ -644,7 +644,7 @@ num_float_one_op(optype_t op_type, num_t a)
 		break;
 
 	default:
-		yyerror("Unknown op in num_float_two_op");
+		yyxerror("Unknown op in num_float_two_op");
 	}
 
 	return r;

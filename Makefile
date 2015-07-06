@@ -18,7 +18,7 @@ WARNFLAGS= -Wsystem-headers -Wall -W -Wno-unused-parameter \
 
 VER_FLAGS= -DMAJ_VER=$(MAJ_VER) -DMIN_VER=$(MIN_VER)
 
-CFLAGS=	$(WARNFLAGS) $(VER_FLAGS)
+CFLAGS=	$(WARNFLAGS) $(VER_FLAGS) -std=c99 -D_BSD_SOURCE
 CFLAGS_DEBUG= -O0 -g3
 CFLAGS_OPT=   -O4 -flto
 LDFLAGS=

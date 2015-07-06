@@ -27,7 +27,15 @@
  * SUCH DAMAGE.
  */
 
+#ifndef _CALC_H
+#define _CALC_H
+
+#include "parse_ctx.h"
+
 #define MAX_HIST_LEN	1000
+#define HISTORY_FILE	"~/.asccalc.history"
+#define RC_DIRECTORY	"~/.asccalc.rc.d"
+#define RC_FILE		"~/.asccalc.rc"
 
 #define BUCKET_MANUAL 0
 #define BUCKET_AST 1
@@ -36,16 +44,15 @@
 #define BUCKET_VAR 4
 #define BUCKET_FUN 5
 
-extern int yylineno;
-
 extern mpfr_rnd_t round_mode;
 
 void go(ast_t a);
 void test_print_num(num_t n);
-void yyerror(const char *s, ...);
+void yyxerror(const char *s, ...);
 void free_temp_bucket(void);
 void help(void);
 int yy_input_helper(char *buf, size_t max_size);
-int yyparse(void);
+int yyparse(struct parse_ctx *ctx);
 void mode_switch(char new_mode);
-
+void graceful_exit(void);
+#endif

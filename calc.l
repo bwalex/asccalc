@@ -1,4 +1,10 @@
+%option reentrant
+ /* %option prefix="calc" */
 %option nodefault yylineno
+
+%option bison-bridge
+%option bison-locations
+
 %{
 # include <stdio.h>
 # include <assert.h>
@@ -11,7 +17,11 @@
 # include "ast.h"
 # include "func.h"
 # include "calc.h"
+# include "parse_ctx.h"
 # include "calc.tab.h"
+
+#define YY_EXTRA_TYPE struct parse_ctx *
+#define YY_USER_ACTION yylloc->first_line = yylineno;
 
 int linecont = 0;
 int nesting = 0;
@@ -31,12 +41,12 @@ SUFFIX	([afpnumkMGTPE])
 "**" |
 "^^"    { return POW; }
 
-">="    { yylval.ct = CMP_GE; return CMP; }
-"<="    { yylval.ct = CMP_LE; return CMP; }
-"!="    { yylval.ct = CMP_NE; return CMP; }
-"=="    { yylval.ct = CMP_EQ; return CMP; }
-">"     { yylval.ct = CMP_GT; return CMP; }
-"<"     { yylval.ct = CMP_LT; return CMP; }
+">="    { yylval->ct = CMP_GE; return CMP; }
+"<="    { yylval->ct = CMP_LE; return CMP; }
+"!="    { yylval->ct = CMP_NE; return CMP; }
+"=="    { yylval->ct = CMP_EQ; return CMP; }
+">"     { yylval->ct = CMP_GT; return CMP; }
+"<"     { yylval->ct = CMP_LT; return CMP; }
 
 "-:"    { return DPSEL; }
 
@@ -91,10 +101,8 @@ SUFFIX	([afpnumkMGTPE])
 <reqstr>[^\\"]* { incpath = strdup(yytext); }
 <reqstr>\"      {
                   assert(incpath != NULL);
-                  yyin = fopen(incpath, "r");
+		  require_file(incpath);
                   free(incpath);
-                  assert(yyin != NULL);
-                  yypush_buffer_state(yy_create_buffer(yyin, YY_BUF_SIZE));
                   BEGIN 0;
                 }
 <reqstr>.       { printf("Mystery character: %c\n", yytext[0]); BEGIN 0; return yytext[0]; }
@@ -104,23 +112,23 @@ SUFFIX	([afpnumkMGTPE])
 ^"m "[bdhoxs]"\n"    { mode_switch(yytext[2]); /* XXX */ printf("mode switch to %c\n", yytext[2]); }
 ^"ls\n"           { varlist(); }
 ^"lsfn\n"         { funlist(); }
-^"quit\n"         { exit(0);   }
-^"exit\n"         { exit(0);   }
+^"quit\n"         { graceful_exit();   }
+^"exit\n"         { graceful_exit();   }
 ^"help\n"         { help();    }
 
  /* names; symtype returns either FUNC or VAR (if in doubt, VAR) */
-[a-zA-Z_][a-zA-Z0-9_]*  { yylval.s = strdup(yytext); return NAME; }
+[a-zA-Z_][a-zA-Z0-9_]*  { yylval->s = strdup(yytext); return NAME; }
 
  /* Hex and binary numbers */
-0[xX][0-9a-fA-F]+ { yylval.a = ast_newnum(NUM_INT, yytext); return NUM; }
-0[bB][01]+ { yylval.a = ast_newnum(NUM_INT, yytext); return NUM; }
+0[xX][0-9a-fA-F]+ { yylval->a = ast_newnum(NUM_INT, yytext); return NUM; }
+0[bB][01]+ { yylval->a = ast_newnum(NUM_INT, yytext); return NUM; }
 
  /* octal numbers */
-0[0-7]+ { yylval.a = ast_newnum(NUM_INT, yytext); return NUM; }
+0[0-7]+ { yylval->a = ast_newnum(NUM_INT, yytext); return NUM; }
 
  /* decimal numbers */
 (0d)?[0-9]+"."[0-9]*{EXP}?{SUFFIX}? |
-(0d)?"."?[0-9]+{EXP}?{SUFFIX}?  { yylval.a = ast_newnum(NUM_FP, yytext); return NUM; }
+(0d)?"."?[0-9]+{EXP}?{SUFFIX}?  { yylval->a = ast_newnum(NUM_FP, yytext); return NUM; }
 
 "#".*   /* ignore comment */
 "//".*  /* ignore comment */
@@ -130,9 +138,8 @@ SUFFIX	([afpnumkMGTPE])
 
 
 <<EOF>> {
-          yypop_buffer_state();
-          if (YY_CURRENT_BUFFER == NULL)
-            yyterminate();
+          printf("LEX: EOF\n");
+          yyterminate();
         }
 
 .       { printf("Mystery character: %c\n", yytext[0]); return yytext[0]; }

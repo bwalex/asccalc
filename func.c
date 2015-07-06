@@ -115,7 +115,7 @@ builtin_mpfr_fun_two_arg_ul(void *priv, char *s, int nargs, num_t * argv)
 	b = num_new_fp(N_TEMP, argv[1]);
 
 	if (!mpfr_fits_ulong_p(F(b), round_mode)) {
-		yyerror
+		yyxerror
 		    ("Second argument to '%s' needs to fit into an unsigned long C datatype");
 		return NULL;
 	}
@@ -155,7 +155,7 @@ builtin_mpz_fun_one_arg_ul(void *priv, char *s, int nargs, num_t * argv)
 	a = num_new_z(N_TEMP, argv[0]);
 
 	if (!mpz_fits_ulong_p(Z(a))) {
-		yyerror
+		yyxerror
 		    ("Argument to '%s' needs to fit into an unsigned long C datatype");
 		return NULL;
 	}
@@ -217,7 +217,7 @@ builtin_mpz_fun_two_arg_ul(void *priv, char *s, int nargs, num_t * argv)
 	b = num_new_z(N_TEMP, argv[1]);
 
 	if (!mpz_fits_ulong_p(Z(b))) {
-		yyerror
+		yyxerror
 		    ("Second argument to '%s' needs to fit into an unsigned long C datatype");
 		return NULL;
 	}
@@ -265,16 +265,16 @@ call_fun(char *s, explist_t l, hashtable_t vartbl)
 		++nargs;
 
 	if ((fn = funlookup(s, 0)) == NULL) {
-		yyerror("Unknown function '%s'", s);
+		yyxerror("Unknown function '%s'", s);
 		return NULL;
 	}
 
 	if (nargs < fn->minargs || nargs > fn->maxargs) {
 		if (fn->minargs == fn->maxargs)
-			yyerror("Function '%s' takes exactly %d arguments", s,
+			yyxerror("Function '%s' takes exactly %d arguments", s,
 			    fn->minargs);
 		else
-			yyerror
+			yyxerror
 			    ("Function '%s' takes a minimum of %d and a maximum of %d arguments",
 			    s, fn->minargs, fn->maxargs);
 
@@ -284,7 +284,7 @@ call_fun(char *s, explist_t l, hashtable_t vartbl)
 	if ((args =
 		alloc_safe_mem(BUCKET_MANUAL,
 		    sizeof(num_t) * nargs)) == NULL) {
-		yyerror("ENOMEM");
+		yyxerror("ENOMEM");
 		exit(1);
 	}
 
@@ -524,7 +524,7 @@ funlookup(const char *s, int alloc)
 		return fn;
 
 	if ((fn = alloc_safe_mem(BUCKET_FUN, sizeof(*fn))) == NULL) {	/* BUCKET_MANUAL */
-		yyerror("ENOMEM");
+		yyxerror("ENOMEM");
 		exit(1);
 	}
 
@@ -561,7 +561,7 @@ _fun_iterator(void *priv, hashobj_t obj)
 		ip->allocsize += 32;
 		ip->s = realloc(ip->s, ip->allocsize * sizeof(char *));
 		if (ip->s == NULL) {
-			yyerror("ENOMEM");
+			yyxerror("ENOMEM");
 			exit(1);
 		}
 	}

@@ -53,7 +53,7 @@ ast_new(optype_t type, ast_t l, ast_t r)
 	ast_t a;
 
 	if ((a = alloc_safe_mem(BUCKET_AST, sizeof(*a))) == NULL) {
-		yyerror("ENOMEM");
+		yyxerror("ENOMEM");
 		exit(1);
 	}
 
@@ -71,7 +71,7 @@ ast_newcall(char *s, explist_t l)
 	astcall_t a;
 
 	if ((a = alloc_safe_mem(BUCKET_AST, sizeof(*a))) == NULL) {
-		yyerror("ENOMEM");
+		yyxerror("ENOMEM");
 		exit(1);
 	}
 
@@ -89,7 +89,7 @@ ast_newref(char *s)
 	astref_t a;
 
 	if ((a = alloc_safe_mem(BUCKET_AST, sizeof(*a))) == NULL) {
-		yyerror("ENOMEM");
+		yyxerror("ENOMEM");
 		exit(1);
 	}
 
@@ -115,7 +115,7 @@ ast_newassign(char *s, ast_t v)
 	assert(s != NULL);
 
 	if ((a = alloc_safe_mem(BUCKET_AST, sizeof(*a))) == NULL) {
-		yyerror("ENOMEM");
+		yyxerror("ENOMEM");
 		exit(1);
 	}
 
@@ -133,7 +133,7 @@ ast_newnum(numtype_t type, char *str)
 	astnum_t a;
 
 	if ((a = alloc_safe_mem(BUCKET_AST, sizeof(*a))) == NULL) {
-		yyerror("ENOMEM");
+		yyxerror("ENOMEM");
 		exit(1);
 	}
 
@@ -150,7 +150,7 @@ ast_newpsel(pseltype_t type, ast_t l, ast_t hi, ast_t lo)
 	astpsel_t a;
 
 	if ((a = alloc_safe_mem(BUCKET_AST, sizeof(*a))) == NULL) {
-		yyerror("ENOMEM");
+		yyxerror("ENOMEM");
 		exit(1);
 	}
 
@@ -171,7 +171,7 @@ ast_newcmp(cmptype_t ct, ast_t l, ast_t r)
 	astcmp_t a;
 
 	if ((a = alloc_safe_mem(BUCKET_AST, sizeof(*a))) == NULL) {
-		yyerror("ENOMEM");
+		yyxerror("ENOMEM");
 		exit(1);
 	}
 
@@ -190,7 +190,7 @@ ast_newflow(flowtype_t ft, ast_t c, ast_t t, ast_t f)
 	astflow_t a;
 
 	if ((a = alloc_safe_mem(BUCKET_AST, sizeof(*a))) == NULL) {
-		yyerror("ENOMEM");
+		yyxerror("ENOMEM");
 		exit(1);
 	}
 
@@ -210,7 +210,7 @@ ast_newexplist(ast_t exp, explist_t next)
 	explist_t el;
 
 	if ((el = alloc_safe_mem(BUCKET_AST, sizeof(*el))) == NULL) {
-		yyerror("ENOMEM");
+		yyxerror("ENOMEM");
 		exit(1);
 	}
 
@@ -227,7 +227,7 @@ ast_newnamelist(char *s, namelist_t next)
 	namelist_t nl;
 
 	if ((nl = alloc_safe_mem(BUCKET_AST, sizeof(*nl))) == NULL) {
-		yyerror("ENOMEM");
+		yyxerror("ENOMEM");
 		exit(1);
 	}
 
@@ -395,7 +395,7 @@ eval(ast_t a, hashtable_t vartbl)
 		if (var == NULL) {
 			var = varlookup(((astref_t) a)->name, 0);
 			if (var == NULL) {
-				yyerror("Variable '%s' not defined",
+				yyxerror("Variable '%s' not defined",
 					((astref_t) a)->name);
 				return NULL;
 			}
@@ -404,6 +404,7 @@ eval(ast_t a, hashtable_t vartbl)
 		break;
 
 	case OP_VARASSIGN:
+		printf("OP_VARASSIGN!\n");
 		l = eval(((astassign_t)a)->v, vartbl);
 		if (l == NULL)
 			return NULL;
@@ -433,7 +434,7 @@ eval(ast_t a, hashtable_t vartbl)
 		break;
 
 	default:
-		yyerror("Unknown op type %d", a->op_type);
+		yyxerror("Unknown op type %d", a->op_type);
 	}
 
 	return n;
@@ -526,7 +527,7 @@ ast_delete(ast_t a)
 		break;
 
 	default:
-		yyerror("Unknown type in ast_delete: %d", a->op_type);
+		yyxerror("Unknown type in ast_delete: %d", a->op_type);
 	}
 
 	free_safe_mem(BUCKET_AST, a);

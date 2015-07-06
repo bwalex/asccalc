@@ -1,7 +1,16 @@
+%pure-parser
+/* %name-prefix "calc" */
+
+%locations
+%defines
+%parse-param { struct parse_ctx *ctx }
+%lex-param { void *scanner }
+
 %{
 #include <math.h>
 #include <ctype.h>
 #include <stdio.h>
+#include <stdarg.h>
 
 #include <gmp.h>
 #include <mpfr.h>
@@ -14,7 +23,23 @@
 #include "ast.h"
 #include "func.h"
 #include "calc.h"
+#include "parse_ctx.h"
+#include "calc.tab.h"
 #include "lex.yy.h"
+
+# define scanner ctx->scanner
+
+void
+yyerror(YYLTYPE *locp, struct parse_ctx *ctx, const char *s, ...)
+{
+	va_list ap;
+
+	va_start(ap, s);
+
+	fprintf(stderr, "%d: error: ", locp->first_line);
+	vfprintf(stderr, s, ap);
+	fprintf(stderr, "\n");
+}
 %}
 
 %union {
