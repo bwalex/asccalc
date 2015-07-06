@@ -425,7 +425,7 @@ eval(ast_t a, hashtable_t vartbl)
 				var = varlookup(((astassign_t) a)->name, 1);
 		}
 
-		n = var->v = num_new_fp(0, l);
+		n = var->v = num_new_z_or_fp(0, l);
 		break;
 
 	case OP_CALL:

@@ -59,6 +59,53 @@ num_delete_temp(void)
 	free_safe_mem_bucket(BUCKET_NUM_TEMP);
 }
 
+static
+int
+num_is_z(num_t a)
+{
+	if (a == NULL)
+		return 1;
+	else if (a->num_type == NUM_INT)
+		return 1;
+	else if (a->num_type == NUM_FP && mpfr_integer_p(F(a)))
+		return 1;
+	else
+		return 0;
+}
+
+static
+int
+num_both_z(num_t a, num_t b)
+{
+	return num_is_z(a) && num_is_z(b);
+}
+
+static
+mpfr_prec_t
+num_prec(num_t a)
+{
+	mpfr_prec_t prec;
+
+	if (a != NULL && a->num_type == NUM_INT) {
+		/* XXX: completely arbitrary! */
+		return 2048;
+	} else if (a != NULL && a->num_type == NUM_FP) {
+		return mpfr_get_prec(F(a));
+	} else {
+		return mpfr_get_default_prec();
+	}
+}
+
+static
+mpfr_prec_t
+num_max_prec(num_t a, num_t b)
+{
+	mpfr_prec_t prec_a = num_prec(a);
+	mpfr_prec_t prec_b = num_prec(b);
+
+	return (prec_a > prec_b) ? prec_a : prec_b;
+}
+
 
 num_t
 num_new(int flags)
@@ -74,6 +121,17 @@ num_new(int flags)
 	return r;
 }
 
+
+num_t
+num_new_z_or_fp(int flags, num_t b)
+{
+	assert (b != NULL);
+
+	if (b->num_type == NUM_INT)
+		return num_new_z(flags, b);
+	else
+		return num_new_fp(flags, b);
+}
 
 num_t
 num_new_z(int flags, num_t b)
@@ -107,6 +165,10 @@ num_new_fp(int flags, num_t b)
 	mpfr_init(F(r));
 
 	if (b != NULL) {
+		mpfr_prec_t prec_b = num_prec(b);
+		if (prec_b > mpfr_get_default_prec())
+			mpfr_set_prec(F(r), prec_b);
+
 		if (b->num_type == NUM_INT)
 			mpfr_set_z(F(r), Z(b), round_mode);
 		else if (b->num_type == NUM_FP)
@@ -266,8 +328,8 @@ num_new_const_zero(int flags)
 {
 	num_t r;
 
-	r = num_new_fp(flags, NULL);
-	mpfr_init_set_si(F(r), 0, round_mode);
+	r = num_new_z(flags, NULL);
+	mpz_init_set_si(Z(r), 0);
 
 	return r;
 }
@@ -452,34 +514,70 @@ num_int_part_sel(pseltype_t op_type, num_t hi, num_t lo, num_t a)
 num_t
 num_float_two_op(optype_t op_type, num_t a, num_t b)
 {
-	num_t r;
+	num_t r, r_z, rem_z, a_z, b_z;
+	int both_z = num_both_z(a, b);
 
 	r = num_new_fp(N_TEMP, NULL);
+	mpfr_set_prec(F(r), num_max_prec(a, b));
+
 	a = num_new_fp(N_TEMP, a);
 	b = num_new_fp(N_TEMP, b);
 
+	if (both_z) {
+		r_z = num_new_z(N_TEMP, NULL);
+		rem_z = num_new_z(N_TEMP, NULL);
+		a_z = num_new_z(N_TEMP, a);
+		b_z = num_new_z(N_TEMP, b);
+	}
+
 	switch (op_type) {
 	case OP_ADD:
-		mpfr_add(F(r), F(a), F(b), round_mode);
+		if (both_z) {
+			mpz_add(Z(r_z), Z(a_z), Z(b_z));
+			return r_z;
+		} else {
+			mpfr_add(F(r), F(a), F(b), round_mode);
+		}
 		break;
 
 	case OP_SUB:
-		mpfr_sub(F(r), F(a), F(b), round_mode);
+		if (both_z) {
+			mpz_sub(Z(r_z), Z(a_z), Z(b_z));
+			return r_z;
+		} else {
+			mpfr_sub(F(r), F(a), F(b), round_mode);
+		}
 		break;
 
 	case OP_MUL:
-		mpfr_mul(F(r), F(a), F(b), round_mode);
+		if (both_z) {
+			mpz_mul(Z(r_z), Z(a_z), Z(b_z));
+			return r_z;
+		} else {
+			mpfr_mul(F(r), F(a), F(b), round_mode);
+		}
 		break;
 
 	case OP_DIV:
-		mpfr_div(F(r), F(a), F(b), round_mode);
+		if (both_z)
+			mpz_divmod(Z(r_z), Z(rem_z), Z(a_z), Z(b_z));
+
+		if (both_z && num_is_zero(rem_z))
+			return r_z;
+		else
+			mpfr_div(F(r), F(a), F(b), round_mode);
 		break;
 
 	case OP_MOD:
-		/*
-		 * XXX: mpfr_fmod or mpfr_remainder
-		 */
-		mpfr_fmod(F(r), F(a), F(b), round_mode);
+		if (both_z) {
+			mpz_mod(Z(r_z), Z(a_z), Z(b_z));
+			return r_z;
+		} else {
+			/*
+			 * XXX: mpfr_fmod or mpfr_remainder
+			 */
+			mpfr_fmod(F(r), F(a), F(b), round_mode);
+		}
 		break;
 
 	case OP_POW:
@@ -499,12 +597,21 @@ num_cmp(cmptype_t ct, num_t a, num_t b)
 {
 	num_t r;
 	int s;
+	int both_z = num_both_z(a, b);
 
 	r = num_new_z(N_TEMP, NULL);
-	a = num_new_fp(N_TEMP, a);
-	b = num_new_fp(N_TEMP, b);
 
-	s = mpfr_cmp(F(a), F(b));
+	if (both_z) {
+		a = num_new_z(N_TEMP, a);
+		b = num_new_z(N_TEMP, b);
+
+		s = mpz_cmp(Z(a), Z(b));
+	} else {
+		a = num_new_fp(N_TEMP, a);
+		b = num_new_fp(N_TEMP, b);
+
+		s = mpfr_cmp(F(a), F(b));
+	}
 
 	switch (ct) {
 	case CMP_GE: mpz_set_ui(Z(r), (s >= 0) ? 1 : 0); break;
@@ -527,6 +634,8 @@ num_float_one_op(optype_t op_type, num_t a)
 	num_t r;
 
 	r = num_new_fp(N_TEMP, NULL);
+	mpfr_set_prec(F(r), num_prec(a));
+
 	a = num_new_fp(N_TEMP, a);
 
 	switch (op_type) {
@@ -562,4 +671,6 @@ num_init(void)
 {
 	init_safe_mem_bucket(BUCKET_NUM, NULL, num_dtor);
 	init_safe_mem_bucket(BUCKET_NUM_TEMP, NULL, num_dtor);
+
+	mpfr_set_default_prec(256);
 }

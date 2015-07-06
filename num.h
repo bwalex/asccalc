@@ -55,6 +55,7 @@ typedef struct num
 num_t num_new(int flags);
 num_t num_new_z(int flags, num_t b);
 num_t num_new_fp(int flags, num_t b);
+num_t num_new_z_or_fp(int flags, num_t b);
 num_t num_new_from_str(int flags, numtype_t typehint, char *str);
 num_t num_new_const_pi(int flags);
 num_t num_new_const_catalan(int flags);
