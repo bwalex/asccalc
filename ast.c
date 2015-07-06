@@ -415,8 +415,8 @@ eval(ast_t a, hashtable_t vartbl)
 			var = varlookup(((astassign_t) a)->name, 0);
 
 		if (var != NULL) {
-			/* dispose of old var first */
-			if (!var->no_numfree)
+			/* dispose of old var first, unless it's the same as is being returned */
+			if (!var->no_numfree && (l != var->v))
 				num_delete(var->v);
 		} else {
 			if (vartbl != NULL)

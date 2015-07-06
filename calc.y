@@ -117,6 +117,7 @@ exp: exp CMP exp          { $$ = ast_newcmp($2, $1, $3); }
    | NAME '(' explist ')' { $$ = ast_newcall($1, $3); }
    | NAME                 { $$ = ast_newref($1); }
    | NAME '=' exp         { $$ = ast_newassign($1, $3); }
+   | NAME '=' stmt        { $$ = ast_newassign($1, $3); }
 ;
 
 
