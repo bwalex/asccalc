@@ -32,7 +32,7 @@ endif
 
 OBJS=	calc.tab.o lex.yy.o
 OBJS+=	linenoise.o
-OBJS+=	num.o ast.o var.o func.o hashtable.o safe_mem.o calc.o
+OBJS+=	num.o ast.o var.o func.o hashtable.o safe_mem.o main.o
 
 all: asccalc
 
