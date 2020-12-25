@@ -12,17 +12,18 @@ WARNFLAGS= -Wsystem-headers -Wall -W -Wno-unused-parameter \
 	-Wstrict-prototypes -Wmissing-prototypes -Wpointer-arith \
 	-Wold-style-definition -Wreturn-type -Wwrite-strings \
 	-Wswitch -Wshadow -Wcast-align -Wchar-subscripts \
-	-Winline -Wnested-externs
+	-Winline -Wnested-externs \
+	-Wno-error -Wno-implicit-function-declaration
 
 #WARNFLAGS+= -Werror -Wcast-qual -Wunused-parameter
 
 VER_FLAGS= -DMAJ_VER=$(MAJ_VER) -DMIN_VER=$(MIN_VER)
 
-CFLAGS=	$(WARNFLAGS) $(VER_FLAGS) -std=c99 -D_BSD_SOURCE
+CFLAGS=	$(WARNFLAGS) $(VER_FLAGS) -std=c99 -D_BSD_SOURCE `pkg-config gmp mpfr --cflags`
 CFLAGS_DEBUG= -O0 -g3
 CFLAGS_OPT=   -O4 -flto
 LDFLAGS=
-LIBS=	-lm -lgmp -lmpfr
+LIBS=	-lm `pkg-config gmp mpfr --libs`
 
 ifeq (${DEBUG}, yes)
   CFLAGS += $(CFLAGS_DEBUG)
