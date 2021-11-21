@@ -374,6 +374,42 @@ builtin_avg(void *priv, char *s, int nargs, num_t * argv)
 }
 
 
+static
+num_t
+builtin_deg2rad(void *priv, char *s, int nargs, num_t * argv)
+{
+	num_t r, a, pi;
+
+	r = num_new_fp(N_TEMP, NULL);
+	a = num_new_fp(N_TEMP, argv[0]);
+	pi = num_new_const_pi(0);
+
+	mpfr_mul_si(F(r), F(pi), 2, round_mode);
+	mpfr_div_si(F(r), F(r), 360, round_mode);
+	mpfr_mul(F(r), F(r), F(a), round_mode);
+
+	return r;
+}
+
+
+static
+num_t
+builtin_rad2deg(void *priv, char *s, int nargs, num_t * argv)
+{
+	num_t r, a, pi;
+
+	r = num_new_fp(N_TEMP, NULL);
+	a = num_new_fp(N_TEMP, argv[0]);
+	pi = num_new_const_pi(0);
+
+	mpfr_mul_si(F(r), F(pi), 2, round_mode);
+	mpfr_div_si(F(r), F(r), 360, round_mode);
+	mpfr_div(F(r), F(a), F(r), round_mode);
+
+	return r;
+}
+
+
 struct builtin_funcs
 {
 	const char *name;
@@ -384,7 +420,7 @@ struct builtin_funcs
 } builtin_funcs[] = {
   { "sqrt"      , mpfr_sqrt      , builtin_mpfr_fun_one_arg       , 1, 1     },
   { "cbrt"      , mpfr_cbrt      , builtin_mpfr_fun_one_arg       , 1, 1     },
-  { "root"      , mpfr_root      , builtin_mpfr_fun_two_arg_ul    , 2, 2     },
+  { "root"      , mpfr_rootn_ui  , builtin_mpfr_fun_two_arg_ul    , 2, 2     },
   { "abs"       , mpfr_abs       , builtin_mpfr_fun_one_arg       , 1, 1     },
   { "ln"        , mpfr_log       , builtin_mpfr_fun_one_arg       , 1, 1     },
   { "log2"      , mpfr_log2      , builtin_mpfr_fun_one_arg       , 1, 1     },
@@ -417,6 +453,8 @@ struct builtin_funcs
   { "floor"     , mpfr_floor     , builtin_mpfr_fun_one_arg_nornd , 1, 1     },
   { "trunc"     , mpfr_trunc     , builtin_mpfr_fun_one_arg_nornd , 1, 1     },
   { "int"       , mpfr_trunc     , builtin_mpfr_fun_one_arg_nornd , 1, 1     },
+  { "deg2rad"   , NULL           , builtin_deg2rad                , 1, 1     },
+  { "rad2deg"   , NULL           , builtin_rad2deg                , 1, 1     },
 
   { "nextprime" , mpz_nextprime  , builtin_mpz_fun_one_arg        , 1, 1     },
   { "gcd"       , mpz_gcd        , builtin_mpz_fun_two_arg        , 2, 2     },
