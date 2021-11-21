@@ -52,7 +52,7 @@ static hashtable_t funtbl;
 
 static
 num_t
-builtin_mpfr_fun_one_arg(void *priv, char *s, int nargs, num_t * argv)
+builtin_mpfr_fun_one_arg(void *priv, const char *s, int nargs, num_t * argv)
 {
 	mpfr_fun_one_arg_t fn = priv;
 	num_t r;
@@ -69,7 +69,7 @@ builtin_mpfr_fun_one_arg(void *priv, char *s, int nargs, num_t * argv)
 
 static
 num_t
-builtin_mpfr_fun_one_arg_nornd(void *priv, char *s, int nargs, num_t * argv)
+builtin_mpfr_fun_one_arg_nornd(void *priv, const char *s, int nargs, num_t * argv)
 {
 	mpfr_fun_one_arg_nornd_t fn = priv;
 	num_t r;
@@ -86,7 +86,7 @@ builtin_mpfr_fun_one_arg_nornd(void *priv, char *s, int nargs, num_t * argv)
 
 static
 num_t
-builtin_mpfr_fun_two_arg(void *priv, char *s, int nargs, num_t * argv)
+builtin_mpfr_fun_two_arg(void *priv, const char *s, int nargs, num_t * argv)
 {
 	mpfr_fun_two_arg_t fn = priv;
 	num_t r;
@@ -104,7 +104,7 @@ builtin_mpfr_fun_two_arg(void *priv, char *s, int nargs, num_t * argv)
 
 static
 num_t
-builtin_mpfr_fun_two_arg_ul(void *priv, char *s, int nargs, num_t * argv)
+builtin_mpfr_fun_two_arg_ul(void *priv, const char *s, int nargs, num_t * argv)
 {
 	mpfr_fun_two_arg_ul_t fn = priv;
 	num_t r;
@@ -128,7 +128,7 @@ builtin_mpfr_fun_two_arg_ul(void *priv, char *s, int nargs, num_t * argv)
 
 static
 num_t
-builtin_mpz_fun_one_arg(void *priv, char *s, int nargs, num_t * argv)
+builtin_mpz_fun_one_arg(void *priv, const char *s, int nargs, num_t * argv)
 {
 	mpz_fun_one_arg_t fn = priv;
 	num_t r;
@@ -145,7 +145,7 @@ builtin_mpz_fun_one_arg(void *priv, char *s, int nargs, num_t * argv)
 
 static
 num_t
-builtin_mpz_fun_one_arg_ul(void *priv, char *s, int nargs, num_t * argv)
+builtin_mpz_fun_one_arg_ul(void *priv, const char *s, int nargs, num_t * argv)
 {
 	mpz_fun_one_arg_ul_t fn = priv;
 	num_t r;
@@ -168,7 +168,7 @@ builtin_mpz_fun_one_arg_ul(void *priv, char *s, int nargs, num_t * argv)
 
 static
 num_t
-builtin_mpz_fun_one_arg_bitcnt(void *priv, char *s, int nargs, num_t * argv)
+builtin_mpz_fun_one_arg_bitcnt(void *priv, const char *s, int nargs, num_t * argv)
 {
 	mpz_fun_one_arg_bitcnt_t fn = priv;
 	mp_bitcnt_t bitcnt;
@@ -188,7 +188,7 @@ builtin_mpz_fun_one_arg_bitcnt(void *priv, char *s, int nargs, num_t * argv)
 
 static
 num_t
-builtin_mpz_fun_two_arg(void *priv, char *s, int nargs, num_t * argv)
+builtin_mpz_fun_two_arg(void *priv, const char *s, int nargs, num_t * argv)
 {
 	mpz_fun_two_arg_t fn = priv;
 	num_t r;
@@ -206,7 +206,7 @@ builtin_mpz_fun_two_arg(void *priv, char *s, int nargs, num_t * argv)
 
 static
 num_t
-builtin_mpz_fun_two_arg_ul(void *priv, char *s, int nargs, num_t * argv)
+builtin_mpz_fun_two_arg_ul(void *priv, const char *s, int nargs, num_t * argv)
 {
 	mpz_fun_two_arg_ul_t fn = priv;
 	num_t r;
@@ -230,7 +230,7 @@ builtin_mpz_fun_two_arg_ul(void *priv, char *s, int nargs, num_t * argv)
 
 static
 num_t
-builtin_mpz_fun_two_arg_bitcnt(void *priv, char *s, int nargs, num_t * argv)
+builtin_mpz_fun_two_arg_bitcnt(void *priv, const char *s, int nargs, num_t * argv)
 {
 	mpz_fun_two_arg_bitcnt_t fn = priv;
 	mp_bitcnt_t bitcnt;
@@ -250,7 +250,7 @@ builtin_mpz_fun_two_arg_bitcnt(void *priv, char *s, int nargs, num_t * argv)
 
 
 num_t
-call_fun(char *s, explist_t l, hashtable_t vartbl)
+call_fun(const char *s, explist_t l, hashtable_t vartbl)
 {
 	func_t fn;
 	explist_t p;
@@ -281,20 +281,26 @@ call_fun(char *s, explist_t l, hashtable_t vartbl)
 		return NULL;
 	}
 
-	if ((args =
-		alloc_safe_mem(BUCKET_MANUAL,
-		    sizeof(num_t) * nargs)) == NULL) {
-		yyxerror("ENOMEM");
-		exit(1);
-	}
+	if (!(fn->flags & FUNC_RAW_ARGS)) {
+		if ((args =
+			alloc_safe_mem(BUCKET_MANUAL,
+			    sizeof(num_t) * nargs)) == NULL) {
+			yyxerror("ENOMEM");
+			exit(1);
+		}
 
-	i = 0;
-	for (p = l; p != NULL; p = p->next) {
-	  args[i++] = eval(p->ast, vartbl);
+		i = 0;
+		for (p = l; p != NULL; p = p->next) {
+		  args[i++] = eval(p->ast, vartbl);
+		}
 	}
 
 	if (fn->builtin) {
-		r = fn->fn(fn->priv, s, nargs, args);
+		if (!(fn->flags & FUNC_RAW_ARGS)) {
+			r = fn->fn(fn->priv, s, nargs, args);
+		} else {
+			r = fn->fn(vartbl, s, nargs, (void *)l);
+		}
 	} else {
 		hashtable_t argtbl = ext_varinit(121);
 
@@ -309,7 +315,8 @@ call_fun(char *s, explist_t l, hashtable_t vartbl)
 		hashtable_destroy(argtbl);
 	}
 
-	free_safe_mem(BUCKET_MANUAL, args);
+	if (!(fn->flags & FUNC_RAW_ARGS))
+		free_safe_mem(BUCKET_MANUAL, args);
 
 	return r;
 }
@@ -317,7 +324,7 @@ call_fun(char *s, explist_t l, hashtable_t vartbl)
 
 static
 num_t
-builtin_min(void *priv, char *s, int nargs, num_t * argv)
+builtin_min(void *priv, const char *s, int nargs, num_t * argv)
 {
 	num_t r;
 	num_t t;
@@ -336,7 +343,7 @@ builtin_min(void *priv, char *s, int nargs, num_t * argv)
 
 static
 num_t
-builtin_max(void *priv, char *s, int nargs, num_t * argv)
+builtin_max(void *priv, const char *s, int nargs, num_t * argv)
 {
 	num_t r;
 	num_t t;
@@ -355,7 +362,7 @@ builtin_max(void *priv, char *s, int nargs, num_t * argv)
 
 static
 num_t
-builtin_avg(void *priv, char *s, int nargs, num_t * argv)
+builtin_avg(void *priv, const char *s, int nargs, num_t * argv)
 {
 	num_t r;
 	num_t t;
@@ -376,7 +383,7 @@ builtin_avg(void *priv, char *s, int nargs, num_t * argv)
 
 static
 num_t
-builtin_deg2rad(void *priv, char *s, int nargs, num_t * argv)
+builtin_deg2rad(void *priv, const char *s, int nargs, num_t * argv)
 {
 	num_t r, a, pi;
 
@@ -394,7 +401,7 @@ builtin_deg2rad(void *priv, char *s, int nargs, num_t * argv)
 
 static
 num_t
-builtin_rad2deg(void *priv, char *s, int nargs, num_t * argv)
+builtin_rad2deg(void *priv, const char *s, int nargs, num_t * argv)
 {
 	num_t r, a, pi;
 
@@ -410,6 +417,83 @@ builtin_rad2deg(void *priv, char *s, int nargs, num_t * argv)
 }
 
 
+static
+num_t
+builtin_tabulate(void *priv, const char *s, int nargs, num_t * argv)
+{
+	hashtable_t vartbl = (hashtable_t)priv;
+	explist_t p, l;
+	ast_t first_arg_ast;
+	const char *fn_name;
+	func_t fn;
+	num_t *results;
+	num_t *args;
+	int i;
+	int n, maxarglen, maxreslen;
+	char buf[256];
+	char buf2[256];
+
+	l = (explist_t)argv;
+	p = l;
+
+	first_arg_ast = p->ast;
+	if (first_arg_ast->op_type != OP_VARREF) {
+		yyxerror("Function 'tabulate' takes a varref as first argument");
+		return NULL;
+	}
+
+	fn_name = ((astref_t) first_arg_ast)->name;
+
+	if ((fn = funlookup(fn_name, 0)) == NULL) {
+		yyxerror("Unknown function '%s'", fn_name);
+		return NULL;
+	}
+
+	--nargs;
+
+	if ((args =
+		alloc_safe_mem(BUCKET_NUM_TEMP,
+		    sizeof(num_t) * nargs)) == NULL) {
+		yyxerror("ENOMEM");
+		exit(1);
+	}
+
+	if ((results =
+		alloc_safe_mem(BUCKET_NUM_TEMP,
+		    sizeof(num_t) * nargs)) == NULL) {
+		yyxerror("ENOMEM");
+		exit(1);
+	}
+
+	maxarglen = maxreslen = 0;
+	for (p = l->next, i = 0; p != NULL; p = p->next, ++i) {
+		struct explist lx;
+
+		args[i] = eval(p->ast, vartbl);
+
+		lx.ast = p->ast;
+		lx.next = NULL;
+		results[i] = call_fun(fn_name, &lx, vartbl);
+
+		n = num_snprint(buf, sizeof(buf)-1, 0, results[i]);
+		if (n > maxreslen)
+			maxreslen = n;
+
+		n = num_snprint(buf, sizeof(buf)-1, 0, args[i]);
+		if (n > maxarglen)
+			maxarglen = n;
+	}
+
+	for (i = 0; i < nargs; i++) {
+		num_snprint(buf, sizeof(buf)-1, maxarglen, args[i]);
+		num_snprint(buf2, sizeof(buf2)-1, maxreslen, results[i]);
+		printf("%s | %s\n", buf, buf2);
+	}
+
+	return NULL;
+}
+
+
 struct builtin_funcs
 {
 	const char *name;
@@ -417,64 +501,67 @@ struct builtin_funcs
 	builtin_func_t fn;
 	int minargs;
 	int maxargs;
+	int flags;
 } builtin_funcs[] = {
-  { "sqrt"      , mpfr_sqrt      , builtin_mpfr_fun_one_arg       , 1, 1     },
-  { "cbrt"      , mpfr_cbrt      , builtin_mpfr_fun_one_arg       , 1, 1     },
-  { "root"      , mpfr_rootn_ui  , builtin_mpfr_fun_two_arg_ul    , 2, 2     },
-  { "abs"       , mpfr_abs       , builtin_mpfr_fun_one_arg       , 1, 1     },
-  { "ln"        , mpfr_log       , builtin_mpfr_fun_one_arg       , 1, 1     },
-  { "log2"      , mpfr_log2      , builtin_mpfr_fun_one_arg       , 1, 1     },
-  { "log10"     , mpfr_log10     , builtin_mpfr_fun_one_arg       , 1, 1     },
-  { "exp"       , mpfr_exp       , builtin_mpfr_fun_one_arg       , 1, 1     },
-  { "sec"       , mpfr_sec       , builtin_mpfr_fun_one_arg       , 1, 1     },
-  { "csc"       , mpfr_csc       , builtin_mpfr_fun_one_arg       , 1, 1     },
-  { "cot"       , mpfr_cot       , builtin_mpfr_fun_one_arg       , 1, 1     },
-  { "cos"       , mpfr_cos       , builtin_mpfr_fun_one_arg       , 1, 1     },
-  { "sin"       , mpfr_sin       , builtin_mpfr_fun_one_arg       , 1, 1     },
-  { "tan"       , mpfr_tan       , builtin_mpfr_fun_one_arg       , 1, 1     },
-  { "acos"      , mpfr_acos      , builtin_mpfr_fun_one_arg       , 1, 1     },
-  { "asin"      , mpfr_asin      , builtin_mpfr_fun_one_arg       , 1, 1     },
-  { "atan"      , mpfr_atan      , builtin_mpfr_fun_one_arg       , 1, 1     },
-  { "atan2"     , mpfr_atan2     , builtin_mpfr_fun_two_arg       , 2, 2     },
-  { "cosh"      , mpfr_cosh      , builtin_mpfr_fun_one_arg       , 1, 1     },
-  { "sinh"      , mpfr_sinh      , builtin_mpfr_fun_one_arg       , 1, 1     },
-  { "tanh"      , mpfr_tanh      , builtin_mpfr_fun_one_arg       , 1, 1     },
-  { "sech"      , mpfr_sech      , builtin_mpfr_fun_one_arg       , 1, 1     },
-  { "csch"      , mpfr_csch      , builtin_mpfr_fun_one_arg       , 1, 1     },
-  { "coth"      , mpfr_coth      , builtin_mpfr_fun_one_arg       , 1, 1     },
-  { "acosh"     , mpfr_acosh     , builtin_mpfr_fun_one_arg       , 1, 1     },
-  { "asinh"     , mpfr_asinh     , builtin_mpfr_fun_one_arg       , 1, 1     },
-  { "atanh"     , mpfr_atanh     , builtin_mpfr_fun_one_arg       , 1, 1     },
-  { "erf"       , mpfr_erf       , builtin_mpfr_fun_one_arg       , 1, 1     },
-  { "erfc"      , mpfr_erfc      , builtin_mpfr_fun_one_arg       , 1, 1     },
-  { "hypot"     , mpfr_hypot     , builtin_mpfr_fun_two_arg       , 2, 2     },
-  { "round"     , mpfr_round     , builtin_mpfr_fun_one_arg_nornd , 1, 1     },
-  { "ceil"      , mpfr_ceil      , builtin_mpfr_fun_one_arg_nornd , 1, 1     },
-  { "floor"     , mpfr_floor     , builtin_mpfr_fun_one_arg_nornd , 1, 1     },
-  { "trunc"     , mpfr_trunc     , builtin_mpfr_fun_one_arg_nornd , 1, 1     },
-  { "int"       , mpfr_trunc     , builtin_mpfr_fun_one_arg_nornd , 1, 1     },
-  { "deg2rad"   , NULL           , builtin_deg2rad                , 1, 1     },
-  { "rad2deg"   , NULL           , builtin_rad2deg                , 1, 1     },
+  { "sqrt"      , mpfr_sqrt      , builtin_mpfr_fun_one_arg       , 1, 1   , 0 },
+  { "cbrt"      , mpfr_cbrt      , builtin_mpfr_fun_one_arg       , 1, 1   , 0 },
+  { "root"      , mpfr_rootn_ui  , builtin_mpfr_fun_two_arg_ul    , 2, 2   , 0 },
+  { "abs"       , mpfr_abs       , builtin_mpfr_fun_one_arg       , 1, 1   , 0 },
+  { "ln"        , mpfr_log       , builtin_mpfr_fun_one_arg       , 1, 1   , 0 },
+  { "log2"      , mpfr_log2      , builtin_mpfr_fun_one_arg       , 1, 1   , 0 },
+  { "log10"     , mpfr_log10     , builtin_mpfr_fun_one_arg       , 1, 1   , 0 },
+  { "exp"       , mpfr_exp       , builtin_mpfr_fun_one_arg       , 1, 1   , 0 },
+  { "sec"       , mpfr_sec       , builtin_mpfr_fun_one_arg       , 1, 1   , 0 },
+  { "csc"       , mpfr_csc       , builtin_mpfr_fun_one_arg       , 1, 1   , 0 },
+  { "cot"       , mpfr_cot       , builtin_mpfr_fun_one_arg       , 1, 1   , 0 },
+  { "cos"       , mpfr_cos       , builtin_mpfr_fun_one_arg       , 1, 1   , 0 },
+  { "sin"       , mpfr_sin       , builtin_mpfr_fun_one_arg       , 1, 1   , 0 },
+  { "tan"       , mpfr_tan       , builtin_mpfr_fun_one_arg       , 1, 1   , 0 },
+  { "acos"      , mpfr_acos      , builtin_mpfr_fun_one_arg       , 1, 1   , 0 },
+  { "asin"      , mpfr_asin      , builtin_mpfr_fun_one_arg       , 1, 1   , 0 },
+  { "atan"      , mpfr_atan      , builtin_mpfr_fun_one_arg       , 1, 1   , 0 },
+  { "atan2"     , mpfr_atan2     , builtin_mpfr_fun_two_arg       , 2, 2   , 0 },
+  { "cosh"      , mpfr_cosh      , builtin_mpfr_fun_one_arg       , 1, 1   , 0 },
+  { "sinh"      , mpfr_sinh      , builtin_mpfr_fun_one_arg       , 1, 1   , 0 },
+  { "tanh"      , mpfr_tanh      , builtin_mpfr_fun_one_arg       , 1, 1   , 0 },
+  { "sech"      , mpfr_sech      , builtin_mpfr_fun_one_arg       , 1, 1   , 0 },
+  { "csch"      , mpfr_csch      , builtin_mpfr_fun_one_arg       , 1, 1   , 0 },
+  { "coth"      , mpfr_coth      , builtin_mpfr_fun_one_arg       , 1, 1   , 0 },
+  { "acosh"     , mpfr_acosh     , builtin_mpfr_fun_one_arg       , 1, 1   , 0 },
+  { "asinh"     , mpfr_asinh     , builtin_mpfr_fun_one_arg       , 1, 1   , 0 },
+  { "atanh"     , mpfr_atanh     , builtin_mpfr_fun_one_arg       , 1, 1   , 0 },
+  { "erf"       , mpfr_erf       , builtin_mpfr_fun_one_arg       , 1, 1   , 0 },
+  { "erfc"      , mpfr_erfc      , builtin_mpfr_fun_one_arg       , 1, 1   , 0 },
+  { "hypot"     , mpfr_hypot     , builtin_mpfr_fun_two_arg       , 2, 2   , 0 },
+  { "round"     , mpfr_round     , builtin_mpfr_fun_one_arg_nornd , 1, 1   , 0 },
+  { "ceil"      , mpfr_ceil      , builtin_mpfr_fun_one_arg_nornd , 1, 1   , 0 },
+  { "floor"     , mpfr_floor     , builtin_mpfr_fun_one_arg_nornd , 1, 1   , 0 },
+  { "trunc"     , mpfr_trunc     , builtin_mpfr_fun_one_arg_nornd , 1, 1   , 0 },
+  { "int"       , mpfr_trunc     , builtin_mpfr_fun_one_arg_nornd , 1, 1   , 0 },
+  { "deg2rad"   , NULL           , builtin_deg2rad                , 1, 1   , 0 },
+  { "rad2deg"   , NULL           , builtin_rad2deg                , 1, 1   , 0 },
 
-  { "nextprime" , mpz_nextprime  , builtin_mpz_fun_one_arg        , 1, 1     },
-  { "gcd"       , mpz_gcd        , builtin_mpz_fun_two_arg        , 2, 2     },
-  { "lcm"       , mpz_lcm        , builtin_mpz_fun_two_arg        , 2, 2     },
-  { "remfac"    , mpz_remove     , builtin_mpz_fun_two_arg        , 2, 2     },
-  { "bin"       , mpz_bin_ui     , builtin_mpz_fun_two_arg_ul     , 2, 2     },
-  { "fib"       , mpz_fib_ui     , builtin_mpz_fun_one_arg_ul     , 1, 1     },
-  { "invert"    , mpz_invert     , builtin_mpz_fun_two_arg        , 2, 2     },
-  { "inv"       , mpz_invert     , builtin_mpz_fun_two_arg        , 2, 2     },
+  { "nextprime" , mpz_nextprime  , builtin_mpz_fun_one_arg        , 1, 1   , 0 },
+  { "gcd"       , mpz_gcd        , builtin_mpz_fun_two_arg        , 2, 2   , 0 },
+  { "lcm"       , mpz_lcm        , builtin_mpz_fun_two_arg        , 2, 2   , 0 },
+  { "remfac"    , mpz_remove     , builtin_mpz_fun_two_arg        , 2, 2   , 0 },
+  { "bin"       , mpz_bin_ui     , builtin_mpz_fun_two_arg_ul     , 2, 2   , 0 },
+  { "fib"       , mpz_fib_ui     , builtin_mpz_fun_one_arg_ul     , 1, 1   , 0 },
+  { "invert"    , mpz_invert     , builtin_mpz_fun_two_arg        , 2, 2   , 0 },
+  { "inv"       , mpz_invert     , builtin_mpz_fun_two_arg        , 2, 2   , 0 },
 
-  { "hamdist"   , mpz_hamdist    , builtin_mpz_fun_two_arg_bitcnt , 2, 2     },
-  { "countones" , mpz_popcount   , builtin_mpz_fun_one_arg_bitcnt , 1, 1     },
-  { "popcount"  , mpz_popcount   , builtin_mpz_fun_one_arg_bitcnt , 1, 1     },
-  { "popcnt"    , mpz_popcount   , builtin_mpz_fun_one_arg_bitcnt , 1, 1     },
+  { "hamdist"   , mpz_hamdist    , builtin_mpz_fun_two_arg_bitcnt , 2, 2   , 0 },
+  { "countones" , mpz_popcount   , builtin_mpz_fun_one_arg_bitcnt , 1, 1   , 0 },
+  { "popcount"  , mpz_popcount   , builtin_mpz_fun_one_arg_bitcnt , 1, 1   , 0 },
+  { "popcnt"    , mpz_popcount   , builtin_mpz_fun_one_arg_bitcnt , 1, 1   , 0 },
 
-  { "min"       , NULL           , builtin_min                    , 2, 1000  },
-  { "max"       , NULL           , builtin_max                    , 2, 1000  },
-  { "avg"       , NULL           , builtin_avg                    , 2, 1000  },
+  { "min"       , NULL           , builtin_min                    , 2, 1000, 0 },
+  { "max"       , NULL           , builtin_max                    , 2, 1000, 0 },
+  { "avg"       , NULL           , builtin_avg                    , 2, 1000, 0 },
 
-  { NULL        , NULL           , NULL                           , 0, 0     }
+  { "tabulate"  , NULL           , builtin_tabulate               , 2, 1000, FUNC_RAW_ARGS },
+
+  { NULL        , NULL           , NULL                           , 0, 0   , 0 }
 };
 
 
@@ -491,6 +578,7 @@ _initbuiltin(void)
 		fn->minargs = builtin_funcs[i].minargs;
 		fn->maxargs = builtin_funcs[i].maxargs;
 		fn->builtin = 1;
+		fn->flags = builtin_funcs[i].flags;
 	}
 }
 
@@ -518,6 +606,7 @@ user_newfun(char *name, namelist_t nl, ast_t a)
 	fn->fn = NULL;
 	fn->minargs = fn->maxargs = i;
 	fn->builtin = 0;
+	fn->flags = 0;
 
 	fn->namelist = nl;
 	fn->ast = a;

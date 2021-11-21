@@ -6,7 +6,7 @@ INSTALL?=install
 DESTDIR?=/usr/local/bin
 
 MAJ_VER=0
-MIN_VER=16
+MIN_VER=17
 
 WARNFLAGS= -Wsystem-headers -Wall -W -Wno-unused-parameter \
 	-Wstrict-prototypes -Wmissing-prototypes -Wpointer-arith \

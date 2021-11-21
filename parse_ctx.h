@@ -2,7 +2,7 @@
 #define _PARSE_CTX_H
 
 struct parse_ctx {
-	char *filename;
+	const char *filename;
 	void *scanner;
 
 	int interactive;

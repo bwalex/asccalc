@@ -205,7 +205,7 @@ varlist(void)
 	for (n = 0; n < i.count; n++) {
 		printf("%s = ", i.s[n]);
 		var = varlookup(i.s[n], 0);
-		test_print_num(var->v);
+		num_print(var->v);
 	}
 }
 

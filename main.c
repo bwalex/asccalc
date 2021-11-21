@@ -222,6 +222,7 @@ require_fd(FILE *fp, const char *fname, int silent)
 
 	return 0;
 }
+
 int
 require_file(const char *file, int silent)
 {
@@ -260,8 +261,6 @@ load_rc(void)
 {
 	struct dirent **namelist;
 	char p[4096];
-	FILE *fp;
-	DIR *dp;
 	int n;
 
 	/* Load rc file, if it exists */
@@ -353,7 +352,7 @@ mode_switch(char new_mode)
 
 
 void
-test_print_num(num_t n)
+num_print(num_t n)
 {
 	const char *prefix = "";
 	char *s;
@@ -395,6 +394,59 @@ test_print_num(num_t n)
 }
 
 
+int
+num_snprint(char *s, size_t sz, int w, num_t n)
+{
+	const char *prefix = "";
+	char *str;
+	num_t a;
+	int base;
+	int r = 0;
+
+	switch (mode) {
+	case 'b': base = 2; prefix = "0b"; break;
+	case 'd': base = 10; prefix = ""; break;
+	case 'x':
+	case 'h': base = 16; prefix = "0x"; break;
+	case 'o': base = 8; prefix = "0"; break;
+	default: base = 10; prefix = "";
+	}
+
+	if (base != 10 && n->num_type != NUM_INT)
+		a = num_new_z(N_TEMP, n);
+	else
+		a = n;
+
+	if (a->num_type == NUM_INT) {
+		if ((str = mpz_get_str(NULL, base, Z(a))) == NULL) {
+			yyxerror("ENOMEM");
+			exit(1);
+		}
+		switch (mode) {
+		case 'b': r = gmp_snprintf(s, sz, "%s%s", prefix, str); break;
+		case 'x':
+		case 'h': r = gmp_snprintf(s, sz, "%s%*Zx", prefix, w, Z(a)); break;
+		case 'o': r = gmp_snprintf(s, sz, "%s%*Zo", prefix, w, Z(a)); break;
+		case 'd':
+		default:  r = gmp_snprintf(s, sz, "%s%*Zd", prefix, w, Z(a)); break;
+		}
+		free(str);
+	} else if (a->num_type == NUM_FP) {
+		if (scientific_mode) {
+			r = mpfr_snprintf(s, sz, "%*.R*G", w, round_mode, F(a));
+		} else if (mpfr_integer_p(F(a))) {
+			r = mpfr_snprintf(s, sz, "%*.0R*f", w, round_mode, F(a));
+		} else {
+			r = mpfr_snprintf(s, sz, "%*.R*f", w, round_mode, F(a));
+		}
+	} else {
+		r = snprintf(s, sz, "invalid!");
+	}
+
+	return r;
+}
+
+
 extern int nallocations;
 
 void
@@ -412,7 +464,7 @@ go(struct parse_ctx *ctx, ast_t a)
 	if (!ctx->silent) {
 		if (isatty(fileno(stdin)))
 			printf("ans = ");
-		test_print_num(ans);
+		num_print(ans);
 	}
 
 	var = varlookup("ans", 1);

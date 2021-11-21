@@ -27,7 +27,7 @@
  * SUCH DAMAGE.
  */
 
-typedef num_t(*builtin_func_t) (void *, char *, int, num_t *);
+typedef num_t(*builtin_func_t) (void *, const char *, int, num_t *);
 
 typedef int (*mpfr_fun_one_arg_t) (mpfr_t, mpfr_t, mpfr_rnd_t);
 typedef int (*mpfr_fun_one_arg_nornd_t) (mpfr_t, mpfr_t);
@@ -49,6 +49,7 @@ typedef struct func
 	int minargs;
 	int maxargs;
 	int builtin;
+	int flags;
 
 	namelist_t namelist;
 	ast_t ast;
@@ -58,7 +59,8 @@ typedef struct func
 
 int funinit(void);
 func_t funlookup(const char *s, int alloc);
-num_t call_fun(char *s, explist_t l, hashtable_t vartbl);
+num_t call_fun(const char *s, explist_t l, hashtable_t vartbl);
 void funlist(void);
 void user_newfun(char *name, namelist_t nl, ast_t a);
 
+#define FUNC_RAW_ARGS	0x01

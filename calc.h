@@ -47,7 +47,8 @@
 extern mpfr_rnd_t round_mode;
 
 void go(struct parse_ctx *ctx, ast_t a);
-void test_print_num(num_t n);
+void num_print(num_t n);
+int num_snprint(char *s, size_t sz, int w, num_t n);
 void yyxerror(const char *s, ...);
 void free_temp_bucket(void);
 void help(void);
