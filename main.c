@@ -382,11 +382,11 @@ num_print(num_t n)
 		free(s);
 	} else if (a->num_type == NUM_FP) {
 		if (scientific_mode) {
-			mpfr_printf("%.R*G\n", round_mode, F(a));
+			mpfr_printf("%.6R*G\n", round_mode, F(a));
 		} else if (mpfr_integer_p(F(a))) {
 			mpfr_printf("%.0R*f\n", round_mode, F(a));
 		} else {
-			mpfr_printf("%.R*f\n", round_mode, F(a));
+			mpfr_printf("%.6R*g\n", round_mode, F(a));
 		}
 	} else {
 		printf("invalid!\n");
@@ -433,11 +433,11 @@ num_snprint(char *s, size_t sz, int w, num_t n)
 		free(str);
 	} else if (a->num_type == NUM_FP) {
 		if (scientific_mode) {
-			r = mpfr_snprintf(s, sz, "%*.R*G", w, round_mode, F(a));
+			r = mpfr_snprintf(s, sz, "%*.6R*G", w, round_mode, F(a));
 		} else if (mpfr_integer_p(F(a))) {
 			r = mpfr_snprintf(s, sz, "%*.0R*f", w, round_mode, F(a));
 		} else {
-			r = mpfr_snprintf(s, sz, "%*.R*f", w, round_mode, F(a));
+			r = mpfr_snprintf(s, sz, "%*.6R*f", w, round_mode, F(a));
 		}
 	} else {
 		r = snprintf(s, sz, "invalid!");
