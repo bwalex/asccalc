@@ -383,6 +383,73 @@ builtin_avg(void *priv, const char *s, int nargs, num_t * argv)
 
 static
 num_t
+builtin_sgn(void *priv, const char *s, int nargs, num_t * argv)
+{
+	num_t a, r;
+	int sgn;
+
+	r = num_new_z(N_TEMP, NULL);
+	if (argv[0]->num_type == NUM_INT) {
+		a = num_new_z(N_TEMP, argv[0]);
+		sgn = mpz_sgn(Z(a));
+	} else {
+		a = num_new_fp(N_TEMP, argv[0]);
+		sgn = mpfr_sgn(F(a));
+	}
+	mpz_set_si(Z(r), (long)sgn);
+	return r;
+}
+
+
+static
+num_t
+builtin_bits(void *priv, const char *s, int nargs, num_t * argv)
+{
+	num_t a, r;
+
+	r = num_new_z(N_TEMP, NULL);
+	a = num_new_z(N_TEMP, argv[0]);
+	mpz_set_ui(Z(r), (unsigned long)mpz_sizeinbase(Z(a), 2));
+	return r;
+}
+
+
+static
+num_t
+builtin_msb(void *priv, const char *s, int nargs, num_t * argv)
+{
+	num_t a, r;
+
+	r = num_new_z(N_TEMP, NULL);
+	a = num_new_z(N_TEMP, argv[0]);
+	if (mpz_sgn(Z(a)) <= 0) {
+		yyxerror("msb: argument must be a positive integer");
+		return NULL;
+	}
+	mpz_set_ui(Z(r), (unsigned long)(mpz_sizeinbase(Z(a), 2) - 1));
+	return r;
+}
+
+
+static
+num_t
+builtin_ctz(void *priv, const char *s, int nargs, num_t * argv)
+{
+	num_t a, r;
+
+	r = num_new_z(N_TEMP, NULL);
+	a = num_new_z(N_TEMP, argv[0]);
+	if (mpz_sgn(Z(a)) == 0) {
+		yyxerror("ctz: argument must be non-zero");
+		return NULL;
+	}
+	mpz_set_ui(Z(r), (unsigned long)mpz_scan1(Z(a), 0));
+	return r;
+}
+
+
+static
+num_t
 builtin_deg2rad(void *priv, const char *s, int nargs, num_t * argv)
 {
 	num_t r, a, pi;
@@ -507,6 +574,7 @@ struct builtin_funcs
   { "cbrt"      , mpfr_cbrt      , builtin_mpfr_fun_one_arg       , 1, 1   , 0 },
   { "root"      , mpfr_rootn_ui  , builtin_mpfr_fun_two_arg_ul    , 2, 2   , 0 },
   { "abs"       , mpfr_abs       , builtin_mpfr_fun_one_arg       , 1, 1   , 0 },
+  { "sgn"       , NULL           , builtin_sgn                    , 1, 1   , 0 },
   { "ln"        , mpfr_log       , builtin_mpfr_fun_one_arg       , 1, 1   , 0 },
   { "log2"      , mpfr_log2      , builtin_mpfr_fun_one_arg       , 1, 1   , 0 },
   { "log10"     , mpfr_log10     , builtin_mpfr_fun_one_arg       , 1, 1   , 0 },
@@ -546,6 +614,7 @@ struct builtin_funcs
   { "lcm"       , mpz_lcm        , builtin_mpz_fun_two_arg        , 2, 2   , 0 },
   { "remfac"    , mpz_remove     , builtin_mpz_fun_two_arg        , 2, 2   , 0 },
   { "bin"       , mpz_bin_ui     , builtin_mpz_fun_two_arg_ul     , 2, 2   , 0 },
+  { "comb"      , mpz_bin_ui     , builtin_mpz_fun_two_arg_ul     , 2, 2   , 0 },
   { "fib"       , mpz_fib_ui     , builtin_mpz_fun_one_arg_ul     , 1, 1   , 0 },
   { "invert"    , mpz_invert     , builtin_mpz_fun_two_arg        , 2, 2   , 0 },
   { "inv"       , mpz_invert     , builtin_mpz_fun_two_arg        , 2, 2   , 0 },
@@ -554,6 +623,9 @@ struct builtin_funcs
   { "countones" , mpz_popcount   , builtin_mpz_fun_one_arg_bitcnt , 1, 1   , 0 },
   { "popcount"  , mpz_popcount   , builtin_mpz_fun_one_arg_bitcnt , 1, 1   , 0 },
   { "popcnt"    , mpz_popcount   , builtin_mpz_fun_one_arg_bitcnt , 1, 1   , 0 },
+  { "bits"      , NULL           , builtin_bits                   , 1, 1   , 0 },
+  { "msb"       , NULL           , builtin_msb                    , 1, 1   , 0 },
+  { "ctz"       , NULL           , builtin_ctz                    , 1, 1   , 0 },
 
   { "min"       , NULL           , builtin_min                    , 2, 1000, 0 },
   { "max"       , NULL           , builtin_max                    , 2, 1000, 0 },

@@ -93,6 +93,7 @@ SUFFIX	([afpnumkMGTPE])
 
 "require"       BEGIN reqb;
 <reqb>[ \t]     /* ignore white space */
+<reqb>\n        { printf("require: expected filename\n"); BEGIN 0; }
 <reqb>\"        BEGIN reqstr;
 <reqb>.         { printf("Unexpected character: %c\n", yytext[0]); BEGIN 0; return yytext[0]; }
 <reqstr>[^\\"]* { incpath = strdup(yytext); }
@@ -102,6 +103,7 @@ SUFFIX	([afpnumkMGTPE])
                   free(incpath);
                   BEGIN 0;
                 }
+<reqstr>\n      { printf("require: unterminated filename\n"); BEGIN 0; }
 <reqstr>.       { printf("Unexpected character: %c\n", yytext[0]); BEGIN 0; return yytext[0]; }
 
  /* Commands */

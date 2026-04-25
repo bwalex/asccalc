@@ -17,11 +17,11 @@ Binary Operators
 %        Modulo (Remainder)
 **       raise to the power of...
 ^^       same as **
-&        Logical And
+&        Bitwise And
 and      same as &
-|        Logical Or
+|        Bitwise Or
 or       same as |
-^        Logical Exclusive-Or
+^        Bitwise Exclusive-Or
 xor      same as ^
 <<       Logical shift left (arithmetic shift for negative numbers)
 >>       Logical shift right (arithmetic shift for negative numbers)
@@ -102,6 +102,16 @@ or
 
     1 + 5 * \
     7;
+
+
+Built-in constants
+--------
+The following constants are predefined:
+
+    pi     Pi (3.14159...)
+    e      Euler's number (2.71828...)
+    G      Catalan's constant (0.91597...)
+    ans    Result of the last evaluated expression
 
 
 User-defined variables
@@ -220,7 +230,7 @@ Comments can either start with // or #
 
 Keywords (i.e. reserved words)
 ---------
-if, then, else, fi, while, do, done, function, endfunction, ls, lsfn,
+if, then, else, fi, while, do, done, function, endfunction, require, ls, lsfn,
 quit, exit, help, mode, and, or, xor
 
 
@@ -229,18 +239,19 @@ quit, exit, help, mode, and, or, xor
 Commands
 ---------
 ```
-ls           Lists all variables
-lsfn         Lists all functions (builtin and user-defined)
-m <mode>     Same as mode <mode>
-mode <mode>  Switches to output mode <MODE>, where mode is one of
-             the following:
-               b - for binary output
-               d - for decimal output
-	       s - for decimal scientific output
-               h or x - for hexadecimal output
-               o - for octal output
-quit         Exits the program
-exit         Exits the program
+ls                    Lists all variables
+lsfn                  Lists all functions (builtin and user-defined)
+m <mode>              Same as mode <mode>
+mode <mode>           Switches to output mode <MODE>, where mode is one of
+                      the following:
+                        b - for binary output
+                        d - for decimal output
+                        s - for decimal scientific output
+                        h or x - for hexadecimal output
+                        o - for octal output
+require "<filename>"  Load and evaluate a file
+quit                  Exits the program
+exit                  Exits the program
 ```
 
 
@@ -255,6 +266,7 @@ sqrt(a)       Square Root of a
 cbrt(a)       Cubic Root of a
 root(a,n)     n-th root of a
 abs(a)        Absolute value of a
+sgn(a)        Sign of a: returns -1, 0, or 1
 ln(a)         Natural Logarithm of a
 log2(a)       Logarithm base 2 of a
 log10(a)      Logarithm base 10 of a
@@ -286,17 +298,24 @@ ceil(a)       Round a upwards to nearest integer
 floor(a)      Round a downwards to nearest integer
 trunc(a)      Truncate a to an integer
 int(a)        Same as trunc(a)
+deg2rad(a)    Convert degrees to radians
+rad2deg(a)    Convert radians to degrees
 nextprime(a)  Gives the next highest prime number after a
 gcd(a,b)      Greatest common divisor of a and b
 lcm(a,b)      Least common multiple of a and b
 remfac(a,b)   Remove factor b from a
 bin(a,b)      Binomial coefficient (a | b)
+comb(a,b)     Same as bin(a,b)
 fib(n)        n-th fibonacci number
 inv(a,N)      Find the inverse of a (modulo N)
+invert(a,N)   Same as inv(a,N)
 hamdist(a,b)  Gives the hamming distance between integers a and b
 countones(a)  Returns the number of 1-bits in integer a
 popcount(a)   Same as countones(a)
 popcnt(a)     Same as countones(a)
+bits(a)       Number of bits needed to represent integer a (floor(log2(a))+1)
+msb(a)        Index of the most significant set bit (floor(log2(a))), a > 0
+ctz(a)        Index of the least significant set bit (count trailing zeros), a != 0
 min(a,b,...)  Minimum of a,b,...
 max(a,b,...)  Maximum of a,b,...
 avg(a,b,...)  Average of a,b,...
@@ -326,7 +345,17 @@ To build on Ubuntu and Debian:
 
 To just use a binary package:
 
-    apt-get install libgmp10 libmpfr4
+    apt-get install libgmp10 libmpfr6
+
+
+Startup files
+------------
+On startup, asccalc loads the following files if they exist:
+
+- `~/.asccalc.rc` — evaluated silently before the first prompt
+- `~/.asccalc.rc.d/*` — each file in this directory is evaluated in alphabetical order
+
+Command history is saved to and loaded from `~/.asccalc.history`.
 
 
 Build

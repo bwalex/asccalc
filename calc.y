@@ -60,18 +60,18 @@ yyerror(YYLTYPE *locp, struct parse_ctx *ctx, const char *s, ...)
 
 %token IF THEN ELSE ELSIF FI WHILE DO DONE FUNCTION ENDFUNCTION
 
-%nonassoc <ct> CMP
-%nonassoc DPSEL
-%nonassoc ':'
-%nonassoc '[' ']'
-
 %right '='
-%left '-' '+' OR XOR
-%left '*' '/' '%' AND 
-%right SHR SHL
+%nonassoc <ct> CMP
+%left OR XOR
+%left '-' '+'
+%left '*' '/' '%' AND
+%left SHR SHL
 %nonassoc UMINUS UNEG
 %right POW
 %nonassoc '!'
+%nonassoc DPSEL
+%nonassoc ':'
+%nonassoc '[' ']'
 
 
 %type <a> exp stmt list final_elsif conditional_stmt elsifs partsel
