@@ -739,6 +739,8 @@ struct fun_iteration {
 	char **s;
 	int count;
 	int allocsize;
+	void *priv;
+	var_it_fn fn;
 };
 
 
@@ -747,6 +749,27 @@ int
 _name_comp(const void *a, const void *b)
 {
 	return strcmp(* (char * const *) a, * (char * const *) b);
+}
+
+
+static
+void
+_fun_iterator_gen(void *priv, hashobj_t obj)
+{
+	struct fun_iteration *ip = priv;
+	ip->fn(ip->priv, obj->str);
+}
+
+void
+fun_iterate(void *priv, var_it_fn fn)
+{
+	struct fun_iteration it;
+	it.fn = fn;
+	it.priv = priv;
+	it.s = NULL;
+	it.count = 0;
+	it.allocsize = 0;
+	hashtable_iterate(funtbl, _fun_iterator_gen, &it);
 }
 
 

@@ -37,6 +37,7 @@
 #include <dirent.h>
 #include <signal.h>
 #include <assert.h>
+#include <ctype.h>
 
 #include <gmp.h>
 #include <mpfr.h>
@@ -111,6 +112,216 @@ struct comp_helper {
 };
 
 
+/* Hints callback: show remaining argument names as ghost text when the
+ * cursor is inside a function call.  Examples:
+ *   atan2(       ->  y, x)
+ *   atan2(0.5,   ->  x)
+ *   sqrt(        ->  a)
+ * Also completes variable names as ghost text:
+ *   foobar_      ->  x   (if foobar_x is the only match)
+ *   fo           ->  o   (longest common prefix among foo, foobar, foobaz)
+ */
+static char hint_buf[256];
+
+struct hint_var_ctx {
+	const char *prefix;
+	int         prefix_len;
+	char        common[256];
+	int         common_len;
+	int         count;
+};
+
+static void
+_collect_var_hint(void *priv, const char *name)
+{
+	struct hint_var_ctx *ctx = priv;
+	if (strncmp(name, ctx->prefix, ctx->prefix_len) != 0)
+		return;
+	const char *suffix = name + ctx->prefix_len;
+	int slen = (int)strlen(suffix);
+	if (ctx->count == 0) {
+		/* First match: seed common with full suffix. */
+		strncpy(ctx->common, suffix, sizeof(ctx->common) - 1);
+		ctx->common[sizeof(ctx->common) - 1] = '\0';
+		ctx->common_len = slen;
+	} else {
+		/* Subsequent matches: trim common to longest shared prefix. */
+		int i = 0;
+		while (i < ctx->common_len && i < slen && ctx->common[i] == suffix[i])
+			i++;
+		ctx->common_len = i;
+		ctx->common[i] = '\0';
+	}
+	ctx->count++;
+}
+
+static char *
+linenoise_hints(const char *buf, int *color, int *bold)
+{
+    int len = (int)strlen(buf);
+    int depth = 0, paren_pos = -1, i, h;
+
+    /* Find the innermost unclosed '(' scanning right-to-left. */
+    for (i = len - 1; i >= 0; i--) {
+        if (buf[i] == ')') depth++;
+        else if (buf[i] == '(') {
+            if (depth == 0) { paren_pos = i; break; }
+            depth--;
+        }
+    }
+    if (paren_pos < 0) {
+        /* Not inside a function call — try variable name completion hint.
+         * Extract the word being typed at the end of the buffer. */
+        int word_end = len;
+        int word_start = word_end;
+        while (word_start > 0 &&
+               (isalnum((unsigned char)buf[word_start-1]) || buf[word_start-1] == '_'))
+            word_start--;
+        /* Need at least one character and must start with a letter/underscore. */
+        if (word_start >= word_end ||
+            (!isalpha((unsigned char)buf[word_start]) && buf[word_start] != '_'))
+            return NULL;
+
+        char word[128];
+        int wlen = word_end - word_start;
+        if (wlen >= (int)sizeof(word)) return NULL;
+        memcpy(word, buf + word_start, wlen);
+        word[wlen] = '\0';
+
+        struct hint_var_ctx ctx;
+        ctx.prefix     = word;
+        ctx.prefix_len = wlen;
+        ctx.common[0]  = '\0';
+        ctx.common_len = 0;
+        ctx.count      = 0;
+        var_iterate(&ctx, _collect_var_hint);
+        fun_iterate(&ctx, _collect_var_hint);
+
+        if (ctx.count == 0 || ctx.common_len == 0)
+            return NULL;
+
+        /* Build the hint: common suffix, then '(' if the completed
+         * name is a known function. */
+        strncpy(hint_buf, ctx.common, sizeof(hint_buf) - 2);
+        hint_buf[sizeof(hint_buf) - 2] = '\0';
+        int hlen = (int)strlen(hint_buf);
+
+        /* Check if prefix + common resolves to a function name. */
+        char full[256];
+        if (wlen + ctx.common_len < (int)sizeof(full)) {
+            memcpy(full, word, wlen);
+            memcpy(full + wlen, ctx.common, ctx.common_len);
+            full[wlen + ctx.common_len] = '\0';
+            if (funlookup(full, 0) != NULL)
+                hint_buf[hlen++] = '(';
+        }
+        hint_buf[hlen] = '\0';
+
+        *color = -1;  /* no specific colour: let dim do the work */
+        *bold  = 2;   /* SGR 2 = dim/faint, adapts to light and dark backgrounds */
+        return hint_buf;
+    }
+
+    /* Extract function name immediately before the paren. */
+    int name_end = paren_pos;
+    int name_start = name_end;
+    while (name_start > 0 &&
+           (isalnum((unsigned char)buf[name_start-1]) || buf[name_start-1] == '_'))
+        name_start--;
+    if (name_start >= name_end || !isalpha((unsigned char)buf[name_start]))
+        return NULL;
+
+    int fname_len = name_end - name_start;
+    char fname[128];
+    if (fname_len >= (int)sizeof(fname)) return NULL;
+    memcpy(fname, buf + name_start, fname_len);
+    fname[fname_len] = '\0';
+
+    func_t fn = funlookup(fname, 0);
+    if (fn == NULL) return NULL;
+
+    /* Count commas at depth 0 inside the opening paren -> current arg index. */
+    int arg_idx = 0;
+    depth = 0;
+    for (i = paren_pos + 1; i < len; i++) {
+        if (buf[i] == '(' || buf[i] == '[') depth++;
+        else if (buf[i] == ')' || buf[i] == ']') depth--;
+        else if (buf[i] == ',' && depth == 0) arg_idx++;
+    }
+
+    /* Are we at the START of the current arg slot (nothing typed for it yet)?
+     * Yes if the last non-space char at/after the opening paren is '(' or ','. */
+    int at_start = 1;
+    {
+        int j = len - 1;
+        while (j > paren_pos && buf[j] == ' ') j--;
+        at_start = (j == paren_pos) || (buf[j] == ',');
+    }
+
+    h = 0;
+    hint_buf[0] = '\0';
+
+    if (!fn->builtin && fn->namelist != NULL) {
+        /* User-defined function: walk to the right namelist position. */
+        namelist_t p = fn->namelist;
+        int skip = at_start ? arg_idx : arg_idx + 1;
+        for (i = 0; i < skip && p != NULL; i++)
+            p = p->next;
+
+        /* Past all args: just need closing paren. */
+        if (p == NULL) { hint_buf[0] = ')'; hint_buf[1] = '\0'; goto done; }
+
+        if (!at_start) { hint_buf[h++] = ','; hint_buf[h++] = ' '; }
+        int first = 1;
+        for (; p != NULL && h < (int)sizeof(hint_buf) - 4; p = p->next) {
+            if (!first) { hint_buf[h++] = ','; hint_buf[h++] = ' '; }
+            first = 0;
+            size_t nlen = strlen(p->name);
+            if (h + (int)nlen >= (int)sizeof(hint_buf) - 4) break;
+            memcpy(hint_buf + h, p->name, nlen);
+            h += nlen;
+        }
+    } else {
+        /* Builtin: generic arg names a, b, c, ... */
+        static const char *generic[] = {"a","b","c","d","e","f","g","h"};
+        int maxargs = fn->maxargs;
+        /* For variadic functions use minargs as the required-arg count;
+         * we always append '...' after. */
+        int nargs = (maxargs < 1000) ? maxargs : fn->minargs;
+        int start = at_start ? arg_idx : arg_idx + 1;
+
+        /* Past all required args and non-variadic: just need closing paren. */
+        if (start >= nargs && maxargs < 1000) {
+            hint_buf[0] = ')'; hint_buf[1] = '\0'; goto done;
+        }
+
+        if (!at_start) { hint_buf[h++] = ','; hint_buf[h++] = ' '; }
+        int first = 1;
+        for (i = start; i < nargs && h < (int)sizeof(hint_buf) - 8; i++) {
+            if (!first) { hint_buf[h++] = ','; hint_buf[h++] = ' '; }
+            first = 0;
+            hint_buf[h++] = (i < 8) ? *generic[i] : ('a' + i % 26);
+        }
+        if (maxargs >= 1000) {
+            /* Append '...' — add separator only if something came before
+             * and doesn't already end with a space. */
+            if (h > 0 && hint_buf[h-1] != ' ') {
+                hint_buf[h++] = ','; hint_buf[h++] = ' ';
+            }
+            hint_buf[h++] = '.'; hint_buf[h++] = '.'; hint_buf[h++] = '.';
+        }
+    }
+
+    hint_buf[h++] = ')';
+    hint_buf[h]   = '\0';
+
+done:
+    *color = -1;  /* no specific colour */
+    *bold  = 2;   /* SGR 2 = dim/faint */
+    return hint_buf;
+}
+
+
 static
 void
 _var_completion_filter(void *priv, const char *var_name)
@@ -125,6 +336,18 @@ _var_completion_filter(void *priv, const char *var_name)
 
 static
 void
+_fun_completion_filter(void *priv, const char *fun_name)
+{
+	struct comp_helper *ph = priv;
+	if (strncmp(fun_name, ph->filter, ph->filter_len) == 0) {
+		char with_paren[256];
+		snprintf(with_paren, sizeof(with_paren), "%s(", fun_name);
+		linenoiseAddCompletion(ph->priv, with_paren);
+	}
+}
+
+static
+void
 linenoise_completion(const char *buf, linenoiseCompletions *lc) {
 	struct comp_helper h;
 
@@ -135,6 +358,7 @@ linenoise_completion(const char *buf, linenoiseCompletions *lc) {
 		h.filter = buf;
 		h.filter_len = strlen(buf);
 		var_iterate(&h, _var_completion_filter);
+		fun_iterate(&h, _fun_completion_filter);
 	}
 }
 
@@ -295,11 +519,12 @@ main(int argc, char *argv[])
 
 	linenoiseHistorySetMaxLen(MAX_HIST_LEN);
 	linenoiseSetCompletionCallback(linenoise_completion);
+	linenoiseSetHintsCallback(linenoise_hints);
 
 	if (isatty(fileno(stdin))) {
 		printf("ascalc %d.%d - A Simple Console Calculator\n",
 		    MAJ_VER, MIN_VER);
-		printf("Copyright (c) 2012-2015 Alex Hornung\n\n");
+		printf("Copyright (c) 2012-2026 Alex Hornung\n\n");
 
 		load_rc();
 

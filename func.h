@@ -61,6 +61,7 @@ int funinit(void);
 func_t funlookup(const char *s, int alloc);
 num_t call_fun(const char *s, explist_t l, hashtable_t vartbl);
 void funlist(void);
+void fun_iterate(void *priv, var_it_fn fn);
 void user_newfun(char *name, namelist_t nl, ast_t a);
 
 #define FUNC_RAW_ARGS	0x01
