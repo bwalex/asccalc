@@ -243,6 +243,9 @@ Commands
 ```
 ls                    Lists all variables
 lsfn                  Lists all functions (builtin and user-defined)
+help                  Lists available commands
+help <name>           Show help for a builtin or user-defined function
+
 m <mode>              Same as mode <mode>
 mode <mode>           Switches to output mode <MODE>, where mode is one of
                       the following:
@@ -262,6 +265,8 @@ exit                  Exits the program
 Builtin functions
 ---------
 Check with the 'lsfn' commands for the most up-to-date list.
+Use `help <name>` for signatures, argument descriptions, return notes, and selected examples.
+
 
 ```
 sqrt(a)       Square Root of a

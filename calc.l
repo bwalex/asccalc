@@ -8,6 +8,9 @@
 %{
 # include <stdio.h>
 # include <assert.h>
+# include <stdlib.h>
+# include <string.h>
+
 # include <gmp.h>
 # include <mpfr.h>
 # include "hashtable.h"
@@ -24,6 +27,34 @@
 #define YY_USER_ACTION yylloc->first_line = yylineno;
 
 char *incpath = NULL;
+
+static void
+help_command(const char *text)
+{
+	const char *start;
+	const char *end;
+	char *name;
+	size_t len;
+
+	start = text + 4;
+	while (*start == ' ' || *start == '\t')
+		start++;
+	end = start;
+	while (*end != '\0' && *end != '\n' && *end != ' ' && *end != '\t')
+		end++;
+
+	len = (size_t)(end - start);
+	name = malloc(len + 1);
+	if (name == NULL) {
+		yyxerror("ENOMEM");
+		exit(1);
+	}
+	memcpy(name, start, len);
+	name[len] = '\0';
+	funhelp(name);
+	free(name);
+}
+
 %}
 
 /* float exponent */
@@ -121,6 +152,8 @@ OCTGROUP	{OCTDIG}(_?{OCTDIG})*
 ^"lsfn\n"         { funlist(); }
 ^"quit\n"         { graceful_exit();   }
 ^"exit\n"         { graceful_exit();   }
+^"help"[ \t]+[a-zA-Z_][a-zA-Z0-9_]*"\n" { help_command(yytext); }
+
 ^"help\n"         { help();    }
 
  /* names; symtype returns either FUNC or VAR (if in doubt, VAR) */

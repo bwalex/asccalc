@@ -717,6 +717,10 @@ help(void)
 
 	printf("\tlsfn\t\t- Lists all functions\n\n");
 
+	printf("\thelp\t\t- Lists available commands\n\n");
+
+	printf("\thelp <name>\t- Show help for a function\n\n");
+
 	printf("\tm <MODE>\t- Same as 'mode'\n\n");
 
 	printf("\tmode <MODE>\t- Switches to <MODE>, where mode is one\n");

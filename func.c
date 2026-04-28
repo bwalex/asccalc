@@ -561,6 +561,179 @@ builtin_tabulate(void *priv, const char *s, int nargs, num_t * argv)
 }
 
 
+struct builtin_arg_help
+{
+	const char *name;
+	const char *desc;
+};
+
+static const struct builtin_arg_help arg_help_sqrt[] = {
+	{ "a", "Number whose square root is returned." },
+	{ NULL, NULL }
+};
+
+static const struct builtin_arg_help arg_help_cbrt[] = {
+	{ "a", "Number whose cube root is returned." },
+	{ NULL, NULL }
+};
+
+static const struct builtin_arg_help arg_help_root[] = {
+	{ "a", "Value whose root is requested." },
+	{ "n", "Degree of the root." },
+	{ NULL, NULL }
+};
+
+static const struct builtin_arg_help arg_help_abs[] = {
+	{ "a", "Value whose magnitude is returned." },
+	{ NULL, NULL }
+};
+
+static const struct builtin_arg_help arg_help_sgn[] = {
+	{ "a", "Value whose sign is tested." },
+	{ NULL, NULL }
+};
+
+static const struct builtin_arg_help arg_help_log[] = {
+	{ "a", "Positive value whose logarithm is returned." },
+	{ NULL, NULL }
+};
+
+static const struct builtin_arg_help arg_help_exp[] = {
+	{ "a", "Exponent applied to Euler's number." },
+	{ NULL, NULL }
+};
+
+static const struct builtin_arg_help arg_help_angle_rad[] = {
+	{ "a", "Angle in radians." },
+	{ NULL, NULL }
+};
+
+static const struct builtin_arg_help arg_help_inverse_trig[] = {
+	{ "a", "Input value whose inverse trigonometric result is requested." },
+	{ NULL, NULL }
+};
+
+static const struct builtin_arg_help arg_help_atan2[] = {
+	{ "y", "Vertical component. This is the first argument." },
+	{ "x", "Horizontal component. This is the second argument." },
+	{ NULL, NULL }
+};
+
+static const struct builtin_arg_help arg_help_hyperbolic[] = {
+	{ "a", "Input value." },
+	{ NULL, NULL }
+};
+
+static const struct builtin_arg_help arg_help_hypot[] = {
+	{ "x", "First side length." },
+	{ "y", "Second side length." },
+	{ NULL, NULL }
+};
+
+static const struct builtin_arg_help arg_help_round[] = {
+	{ "a", "Value to round to the nearest integer." },
+	{ NULL, NULL }
+};
+
+static const struct builtin_arg_help arg_help_ceil[] = {
+	{ "a", "Value to round upward." },
+	{ NULL, NULL }
+};
+
+static const struct builtin_arg_help arg_help_floor[] = {
+	{ "a", "Value to round downward." },
+	{ NULL, NULL }
+};
+
+static const struct builtin_arg_help arg_help_trunc[] = {
+	{ "a", "Value whose fractional part is discarded." },
+	{ NULL, NULL }
+};
+
+static const struct builtin_arg_help arg_help_deg2rad[] = {
+	{ "a", "Angle in degrees." },
+	{ NULL, NULL }
+};
+
+static const struct builtin_arg_help arg_help_rad2deg[] = {
+	{ "a", "Angle in radians." },
+	{ NULL, NULL }
+};
+
+static const struct builtin_arg_help arg_help_nextprime[] = {
+	{ "a", "Integer after which to search for the next prime." },
+	{ NULL, NULL }
+};
+
+static const struct builtin_arg_help arg_help_two_ints[] = {
+	{ "a", "First integer." },
+	{ "b", "Second integer." },
+	{ NULL, NULL }
+};
+
+static const struct builtin_arg_help arg_help_remfac[] = {
+	{ "a", "Value to reduce." },
+	{ "b", "Factor to remove repeatedly from a." },
+	{ NULL, NULL }
+};
+
+static const struct builtin_arg_help arg_help_binom[] = {
+	{ "a", "Total number of items." },
+	{ "b", "Number of selected items." },
+	{ NULL, NULL }
+};
+
+static const struct builtin_arg_help arg_help_fib[] = {
+	{ "n", "Index of the Fibonacci number to return." },
+	{ NULL, NULL }
+};
+
+static const struct builtin_arg_help arg_help_inv[] = {
+	{ "a", "Value to invert." },
+	{ "N", "Modulus." },
+	{ NULL, NULL }
+};
+
+static const struct builtin_arg_help arg_help_hamdist[] = {
+	{ "a", "First integer." },
+	{ "b", "Second integer." },
+	{ NULL, NULL }
+};
+
+static const struct builtin_arg_help arg_help_popcount[] = {
+	{ "a", "Integer whose set bits are counted." },
+	{ NULL, NULL }
+};
+
+static const struct builtin_arg_help arg_help_bits[] = {
+	{ "a", "Integer whose representation width is measured." },
+	{ NULL, NULL }
+};
+
+static const struct builtin_arg_help arg_help_msb[] = {
+	{ "a", "Positive integer whose highest set bit is located." },
+	{ NULL, NULL }
+};
+
+static const struct builtin_arg_help arg_help_ctz[] = {
+	{ "a", "Non-zero integer whose trailing zero bits are counted." },
+	{ NULL, NULL }
+};
+
+static const struct builtin_arg_help arg_help_variadic_values[] = {
+	{ "a", "First value." },
+	{ "b", "Second value." },
+	{ "...", "Additional values." },
+	{ NULL, NULL }
+};
+
+static const struct builtin_arg_help arg_help_tabulate[] = {
+	{ "f", "Function name to call." },
+	{ "a", "First argument expression to evaluate and pass to f." },
+	{ "...", "Additional argument expressions to evaluate and pass to f one at a time." },
+	{ NULL, NULL }
+};
+
 struct builtin_funcs
 {
 	const char *name;
@@ -569,73 +742,312 @@ struct builtin_funcs
 	int minargs;
 	int maxargs;
 	int flags;
+	const char *summary;
+	const char *returns;
+	const struct builtin_arg_help *args;
+	const char *example;
 } builtin_funcs[] = {
-  { "sqrt"      , mpfr_sqrt      , builtin_mpfr_fun_one_arg       , 1, 1   , 0 },
-  { "cbrt"      , mpfr_cbrt      , builtin_mpfr_fun_one_arg       , 1, 1   , 0 },
-  { "root"      , mpfr_rootn_ui  , builtin_mpfr_fun_two_arg_ul    , 2, 2   , 0 },
-  { "abs"       , mpfr_abs       , builtin_mpfr_fun_one_arg       , 1, 1   , 0 },
-  { "sgn"       , NULL           , builtin_sgn                    , 1, 1   , 0 },
-  { "ln"        , mpfr_log       , builtin_mpfr_fun_one_arg       , 1, 1   , 0 },
-  { "log2"      , mpfr_log2      , builtin_mpfr_fun_one_arg       , 1, 1   , 0 },
-  { "log10"     , mpfr_log10     , builtin_mpfr_fun_one_arg       , 1, 1   , 0 },
-  { "exp"       , mpfr_exp       , builtin_mpfr_fun_one_arg       , 1, 1   , 0 },
-  { "sec"       , mpfr_sec       , builtin_mpfr_fun_one_arg       , 1, 1   , 0 },
-  { "csc"       , mpfr_csc       , builtin_mpfr_fun_one_arg       , 1, 1   , 0 },
-  { "cot"       , mpfr_cot       , builtin_mpfr_fun_one_arg       , 1, 1   , 0 },
-  { "cos"       , mpfr_cos       , builtin_mpfr_fun_one_arg       , 1, 1   , 0 },
-  { "sin"       , mpfr_sin       , builtin_mpfr_fun_one_arg       , 1, 1   , 0 },
-  { "tan"       , mpfr_tan       , builtin_mpfr_fun_one_arg       , 1, 1   , 0 },
-  { "acos"      , mpfr_acos      , builtin_mpfr_fun_one_arg       , 1, 1   , 0 },
-  { "asin"      , mpfr_asin      , builtin_mpfr_fun_one_arg       , 1, 1   , 0 },
-  { "atan"      , mpfr_atan      , builtin_mpfr_fun_one_arg       , 1, 1   , 0 },
-  { "atan2"     , mpfr_atan2     , builtin_mpfr_fun_two_arg       , 2, 2   , 0 },
-  { "cosh"      , mpfr_cosh      , builtin_mpfr_fun_one_arg       , 1, 1   , 0 },
-  { "sinh"      , mpfr_sinh      , builtin_mpfr_fun_one_arg       , 1, 1   , 0 },
-  { "tanh"      , mpfr_tanh      , builtin_mpfr_fun_one_arg       , 1, 1   , 0 },
-  { "sech"      , mpfr_sech      , builtin_mpfr_fun_one_arg       , 1, 1   , 0 },
-  { "csch"      , mpfr_csch      , builtin_mpfr_fun_one_arg       , 1, 1   , 0 },
-  { "coth"      , mpfr_coth      , builtin_mpfr_fun_one_arg       , 1, 1   , 0 },
-  { "acosh"     , mpfr_acosh     , builtin_mpfr_fun_one_arg       , 1, 1   , 0 },
-  { "asinh"     , mpfr_asinh     , builtin_mpfr_fun_one_arg       , 1, 1   , 0 },
-  { "atanh"     , mpfr_atanh     , builtin_mpfr_fun_one_arg       , 1, 1   , 0 },
-  { "erf"       , mpfr_erf       , builtin_mpfr_fun_one_arg       , 1, 1   , 0 },
-  { "erfc"      , mpfr_erfc      , builtin_mpfr_fun_one_arg       , 1, 1   , 0 },
-  { "hypot"     , mpfr_hypot     , builtin_mpfr_fun_two_arg       , 2, 2   , 0 },
-  { "round"     , mpfr_round     , builtin_mpfr_fun_one_arg_nornd , 1, 1   , 0 },
-  { "ceil"      , mpfr_ceil      , builtin_mpfr_fun_one_arg_nornd , 1, 1   , 0 },
-  { "floor"     , mpfr_floor     , builtin_mpfr_fun_one_arg_nornd , 1, 1   , 0 },
-  { "trunc"     , mpfr_trunc     , builtin_mpfr_fun_one_arg_nornd , 1, 1   , 0 },
-  { "int"       , mpfr_trunc     , builtin_mpfr_fun_one_arg_nornd , 1, 1   , 0 },
-  { "deg2rad"   , NULL           , builtin_deg2rad                , 1, 1   , 0 },
-  { "rad2deg"   , NULL           , builtin_rad2deg                , 1, 1   , 0 },
+  { "sqrt"      , mpfr_sqrt      , builtin_mpfr_fun_one_arg       , 1, 1   , 0,
+    "Square root.",
+    "The principal square root of a.",
+    arg_help_sqrt,
+    NULL },
+  { "cbrt"      , mpfr_cbrt      , builtin_mpfr_fun_one_arg       , 1, 1   , 0,
+    "Cube root.",
+    "The real cube root of a.",
+    arg_help_cbrt,
+    NULL },
+  { "root"      , mpfr_rootn_ui  , builtin_mpfr_fun_two_arg_ul    , 2, 2   , 0,
+    "n-th root.",
+    "The n-th root of a.",
+    arg_help_root,
+    "root(81, 4) => 3" },
+  { "abs"       , mpfr_abs       , builtin_mpfr_fun_one_arg       , 1, 1   , 0,
+    "Absolute value.",
+    "The absolute value of a.",
+    arg_help_abs,
+    NULL },
+  { "sgn"       , NULL           , builtin_sgn                    , 1, 1   , 0,
+    "Sign test.",
+    "-1 if a is negative, 0 if a is zero, or 1 if a is positive.",
+    arg_help_sgn,
+    NULL },
+  { "ln"        , mpfr_log       , builtin_mpfr_fun_one_arg       , 1, 1   , 0,
+    "Natural logarithm.",
+    "The natural logarithm of a.",
+    arg_help_log,
+    NULL },
+  { "log2"      , mpfr_log2      , builtin_mpfr_fun_one_arg       , 1, 1   , 0,
+    "Base-2 logarithm.",
+    "The base-2 logarithm of a.",
+    arg_help_log,
+    NULL },
+  { "log10"     , mpfr_log10     , builtin_mpfr_fun_one_arg       , 1, 1   , 0,
+    "Base-10 logarithm.",
+    "The base-10 logarithm of a.",
+    arg_help_log,
+    NULL },
+  { "exp"       , mpfr_exp       , builtin_mpfr_fun_one_arg       , 1, 1   , 0,
+    "Exponential.",
+    "Euler's number raised to the power a.",
+    arg_help_exp,
+    NULL },
+  { "sec"       , mpfr_sec       , builtin_mpfr_fun_one_arg       , 1, 1   , 0,
+    "Secant.",
+    "The secant of a.",
+    arg_help_angle_rad,
+    NULL },
+  { "csc"       , mpfr_csc       , builtin_mpfr_fun_one_arg       , 1, 1   , 0,
+    "Cosecant.",
+    "The cosecant of a.",
+    arg_help_angle_rad,
+    NULL },
+  { "cot"       , mpfr_cot       , builtin_mpfr_fun_one_arg       , 1, 1   , 0,
+    "Cotangent.",
+    "The cotangent of a.",
+    arg_help_angle_rad,
+    NULL },
+  { "cos"       , mpfr_cos       , builtin_mpfr_fun_one_arg       , 1, 1   , 0,
+    "Cosine.",
+    "The cosine of a.",
+    arg_help_angle_rad,
+    NULL },
+  { "sin"       , mpfr_sin       , builtin_mpfr_fun_one_arg       , 1, 1   , 0,
+    "Sine.",
+    "The sine of a.",
+    arg_help_angle_rad,
+    NULL },
+  { "tan"       , mpfr_tan       , builtin_mpfr_fun_one_arg       , 1, 1   , 0,
+    "Tangent.",
+    "The tangent of a.",
+    arg_help_angle_rad,
+    NULL },
+  { "acos"      , mpfr_acos      , builtin_mpfr_fun_one_arg       , 1, 1   , 0,
+    "Inverse cosine.",
+    "An angle in radians whose cosine is a.",
+    arg_help_inverse_trig,
+    NULL },
+  { "asin"      , mpfr_asin      , builtin_mpfr_fun_one_arg       , 1, 1   , 0,
+    "Inverse sine.",
+    "An angle in radians whose sine is a.",
+    arg_help_inverse_trig,
+    NULL },
+  { "atan"      , mpfr_atan      , builtin_mpfr_fun_one_arg       , 1, 1   , 0,
+    "Inverse tangent.",
+    "An angle in radians whose tangent is a.",
+    arg_help_inverse_trig,
+    NULL },
+  { "atan2"     , mpfr_atan2     , builtin_mpfr_fun_two_arg       , 2, 2   , 0,
+    "Quadrant-aware arctangent.",
+    "An angle in radians whose tangent is y / x, using the signs of both arguments to choose the correct quadrant.",
+    arg_help_atan2,
+    "atan2(1, -1) => 2.35619..." },
+  { "cosh"      , mpfr_cosh      , builtin_mpfr_fun_one_arg       , 1, 1   , 0,
+    "Hyperbolic cosine.",
+    "The hyperbolic cosine of a.",
+    arg_help_hyperbolic,
+    NULL },
+  { "sinh"      , mpfr_sinh      , builtin_mpfr_fun_one_arg       , 1, 1   , 0,
+    "Hyperbolic sine.",
+    "The hyperbolic sine of a.",
+    arg_help_hyperbolic,
+    NULL },
+  { "tanh"      , mpfr_tanh      , builtin_mpfr_fun_one_arg       , 1, 1   , 0,
+    "Hyperbolic tangent.",
+    "The hyperbolic tangent of a.",
+    arg_help_hyperbolic,
+    NULL },
+  { "sech"      , mpfr_sech      , builtin_mpfr_fun_one_arg       , 1, 1   , 0,
+    "Hyperbolic secant.",
+    "The hyperbolic secant of a.",
+    arg_help_hyperbolic,
+    NULL },
+  { "csch"      , mpfr_csch      , builtin_mpfr_fun_one_arg       , 1, 1   , 0,
+    "Hyperbolic cosecant.",
+    "The hyperbolic cosecant of a.",
+    arg_help_hyperbolic,
+    NULL },
+  { "coth"      , mpfr_coth      , builtin_mpfr_fun_one_arg       , 1, 1   , 0,
+    "Hyperbolic cotangent.",
+    "The hyperbolic cotangent of a.",
+    arg_help_hyperbolic,
+    NULL },
+  { "acosh"     , mpfr_acosh     , builtin_mpfr_fun_one_arg       , 1, 1   , 0,
+    "Inverse hyperbolic cosine.",
+    "The inverse hyperbolic cosine of a.",
+    arg_help_hyperbolic,
+    NULL },
+  { "asinh"     , mpfr_asinh     , builtin_mpfr_fun_one_arg       , 1, 1   , 0,
+    "Inverse hyperbolic sine.",
+    "The inverse hyperbolic sine of a.",
+    arg_help_hyperbolic,
+    NULL },
+  { "atanh"     , mpfr_atanh     , builtin_mpfr_fun_one_arg       , 1, 1   , 0,
+    "Inverse hyperbolic tangent.",
+    "The inverse hyperbolic tangent of a.",
+    arg_help_hyperbolic,
+    NULL },
+  { "erf"       , mpfr_erf       , builtin_mpfr_fun_one_arg       , 1, 1   , 0,
+    "Error function.",
+    "The error function of a.",
+    arg_help_hyperbolic,
+    NULL },
+  { "erfc"      , mpfr_erfc      , builtin_mpfr_fun_one_arg       , 1, 1   , 0,
+    "Complementary error function.",
+    "The complementary error function of a.",
+    arg_help_hyperbolic,
+    NULL },
+  { "hypot"     , mpfr_hypot     , builtin_mpfr_fun_two_arg       , 2, 2   , 0,
+    "Hypotenuse.",
+    "sqrt(x^2 + y^2).",
+    arg_help_hypot,
+    NULL },
+  { "round"     , mpfr_round     , builtin_mpfr_fun_one_arg_nornd , 1, 1   , 0,
+    "Round to nearest integer.",
+    "a rounded to the nearest integer.",
+    arg_help_round,
+    NULL },
+  { "ceil"      , mpfr_ceil      , builtin_mpfr_fun_one_arg_nornd , 1, 1   , 0,
+    "Round upward.",
+    "The smallest integer not less than a.",
+    arg_help_ceil,
+    NULL },
+  { "floor"     , mpfr_floor     , builtin_mpfr_fun_one_arg_nornd , 1, 1   , 0,
+    "Round downward.",
+    "The largest integer not greater than a.",
+    arg_help_floor,
+    NULL },
+  { "trunc"     , mpfr_trunc     , builtin_mpfr_fun_one_arg_nornd , 1, 1   , 0,
+    "Truncate to an integer.",
+    "a with its fractional part discarded.",
+    arg_help_trunc,
+    NULL },
+  { "int"       , mpfr_trunc     , builtin_mpfr_fun_one_arg_nornd , 1, 1   , 0,
+    "Alias for trunc.",
+    "a with its fractional part discarded.",
+    arg_help_trunc,
+    NULL },
+  { "deg2rad"   , NULL           , builtin_deg2rad                , 1, 1   , 0,
+    "Degrees to radians.",
+    "Angle a converted to radians.",
+    arg_help_deg2rad,
+    NULL },
+  { "rad2deg"   , NULL           , builtin_rad2deg                , 1, 1   , 0,
+    "Radians to degrees.",
+    "Angle a converted to degrees.",
+    arg_help_rad2deg,
+    NULL },
 
-  { "nextprime" , mpz_nextprime  , builtin_mpz_fun_one_arg        , 1, 1   , 0 },
-  { "gcd"       , mpz_gcd        , builtin_mpz_fun_two_arg        , 2, 2   , 0 },
-  { "lcm"       , mpz_lcm        , builtin_mpz_fun_two_arg        , 2, 2   , 0 },
-  { "remfac"    , mpz_remove     , builtin_mpz_fun_two_arg        , 2, 2   , 0 },
-  { "bin"       , mpz_bin_ui     , builtin_mpz_fun_two_arg_ul     , 2, 2   , 0 },
-  { "comb"      , mpz_bin_ui     , builtin_mpz_fun_two_arg_ul     , 2, 2   , 0 },
-  { "fib"       , mpz_fib_ui     , builtin_mpz_fun_one_arg_ul     , 1, 1   , 0 },
-  { "invert"    , mpz_invert     , builtin_mpz_fun_two_arg        , 2, 2   , 0 },
-  { "inv"       , mpz_invert     , builtin_mpz_fun_two_arg        , 2, 2   , 0 },
+  { "nextprime" , mpz_nextprime  , builtin_mpz_fun_one_arg        , 1, 1   , 0,
+    "Next prime.",
+    "The smallest prime greater than a.",
+    arg_help_nextprime,
+    NULL },
+  { "gcd"       , mpz_gcd        , builtin_mpz_fun_two_arg        , 2, 2   , 0,
+    "Greatest common divisor.",
+    "The greatest common divisor of a and b.",
+    arg_help_two_ints,
+    NULL },
+  { "lcm"       , mpz_lcm        , builtin_mpz_fun_two_arg        , 2, 2   , 0,
+    "Least common multiple.",
+    "The least common multiple of a and b.",
+    arg_help_two_ints,
+    NULL },
+  { "remfac"    , mpz_remove     , builtin_mpz_fun_two_arg        , 2, 2   , 0,
+    "Remove a repeated factor.",
+    "a with all factors of b removed.",
+    arg_help_remfac,
+    NULL },
+  { "bin"       , mpz_bin_ui     , builtin_mpz_fun_two_arg_ul     , 2, 2   , 0,
+    "Binomial coefficient.",
+    "The number of ways to choose b items from a items.",
+    arg_help_binom,
+    NULL },
+  { "comb"      , mpz_bin_ui     , builtin_mpz_fun_two_arg_ul     , 2, 2   , 0,
+    "Binomial coefficient.",
+    "The number of ways to choose b items from a items.",
+    arg_help_binom,
+    NULL },
+  { "fib"       , mpz_fib_ui     , builtin_mpz_fun_one_arg_ul     , 1, 1   , 0,
+    "Fibonacci number.",
+    "The n-th Fibonacci number.",
+    arg_help_fib,
+    NULL },
+  { "invert"    , mpz_invert     , builtin_mpz_fun_two_arg        , 2, 2   , 0,
+    "Modular inverse.",
+    "A value x such that (a * x) % N == 1, when one exists.",
+    arg_help_inv,
+    "invert(3, 11) => 4" },
+  { "inv"       , mpz_invert     , builtin_mpz_fun_two_arg        , 2, 2   , 0,
+    "Modular inverse.",
+    "A value x such that (a * x) % N == 1, when one exists.",
+    arg_help_inv,
+    "inv(3, 11) => 4" },
 
-  { "hamdist"   , mpz_hamdist    , builtin_mpz_fun_two_arg_bitcnt , 2, 2   , 0 },
-  { "countones" , mpz_popcount   , builtin_mpz_fun_one_arg_bitcnt , 1, 1   , 0 },
-  { "popcount"  , mpz_popcount   , builtin_mpz_fun_one_arg_bitcnt , 1, 1   , 0 },
-  { "popcnt"    , mpz_popcount   , builtin_mpz_fun_one_arg_bitcnt , 1, 1   , 0 },
-  { "bits"      , NULL           , builtin_bits                   , 1, 1   , 0 },
-  { "msb"       , NULL           , builtin_msb                    , 1, 1   , 0 },
-  { "ctz"       , NULL           , builtin_ctz                    , 1, 1   , 0 },
+  { "hamdist"   , mpz_hamdist    , builtin_mpz_fun_two_arg_bitcnt , 2, 2   , 0,
+    "Hamming distance.",
+    "The number of bit positions where a and b differ.",
+    arg_help_hamdist,
+    NULL },
+  { "countones" , mpz_popcount   , builtin_mpz_fun_one_arg_bitcnt , 1, 1   , 0,
+    "Count set bits.",
+    "The number of 1-bits in a.",
+    arg_help_popcount,
+    NULL },
+  { "popcount"  , mpz_popcount   , builtin_mpz_fun_one_arg_bitcnt , 1, 1   , 0,
+    "Count set bits.",
+    "The number of 1-bits in a.",
+    arg_help_popcount,
+    NULL },
+  { "popcnt"    , mpz_popcount   , builtin_mpz_fun_one_arg_bitcnt , 1, 1   , 0,
+    "Count set bits.",
+    "The number of 1-bits in a.",
+    arg_help_popcount,
+    NULL },
+  { "bits"      , NULL           , builtin_bits                   , 1, 1   , 0,
+    "Bit width.",
+    "The number of bits needed to represent a.",
+    arg_help_bits,
+    NULL },
+  { "msb"       , NULL           , builtin_msb                    , 1, 1   , 0,
+    "Most significant set bit.",
+    "The zero-based index of the highest set bit in a.",
+    arg_help_msb,
+    NULL },
+  { "ctz"       , NULL           , builtin_ctz                    , 1, 1   , 0,
+    "Count trailing zeros.",
+    "The number of consecutive zero bits at the least-significant end of a.",
+    arg_help_ctz,
+    NULL },
 
-  { "min"       , NULL           , builtin_min                    , 2, 1000, 0 },
-  { "max"       , NULL           , builtin_max                    , 2, 1000, 0 },
-  { "avg"       , NULL           , builtin_avg                    , 2, 1000, 0 },
+  { "min"       , NULL           , builtin_min                    , 2, 1000, 0,
+    "Minimum of all arguments.",
+    "The smallest argument.",
+    arg_help_variadic_values,
+    NULL },
+  { "max"       , NULL           , builtin_max                    , 2, 1000, 0,
+    "Maximum of all arguments.",
+    "The largest argument.",
+    arg_help_variadic_values,
+    NULL },
+  { "avg"       , NULL           , builtin_avg                    , 2, 1000, 0,
+    "Average of all arguments.",
+    "The arithmetic mean of all arguments.",
+    arg_help_variadic_values,
+    NULL },
 
-  { "tabulate"  , NULL           , builtin_tabulate               , 2, 1000, FUNC_RAW_ARGS },
+  { "tabulate"  , NULL           , builtin_tabulate               , 2, 1000, FUNC_RAW_ARGS,
+    "Print a table of a unary function applied to each following argument expression.",
+    "No numeric result. The table is printed directly.",
+    arg_help_tabulate,
+    "tabulate(sqrt, 1, 4, 9, 16)" },
 
-  { NULL        , NULL           , NULL                           , 0, 0   , 0 }
+  { NULL        , NULL           , NULL                           , 0, 0   , 0,
+    NULL,
+    NULL,
+    NULL,
+    NULL }
 };
-
 
 static void
 _initbuiltin(void)
@@ -823,4 +1235,165 @@ funlist(void)
 		    f->builtin ? "[builtin]" : "[user-defined]");
 	}
 }
+
+static const struct builtin_funcs *
+_builtin_help_lookup(const char *name)
+{
+	int i;
+
+	for (i = 0; builtin_funcs[i].name != NULL; i++) {
+		if (strcmp(builtin_funcs[i].name, name) == 0)
+			return &builtin_funcs[i];
+	}
+
+	return NULL;
+}
+
+static const char *
+_builtin_generic_arg_name(int idx)
+{
+	static const char *const names[] = {
+		"a", "b", "c", "d", "e", "f", "g", "h"
+	};
+	static char fallback[16];
+
+	if (idx >= 0 && idx < (int)(sizeof(names) / sizeof(names[0])))
+		return names[idx];
+
+	snprintf(fallback, sizeof(fallback), "arg%d", idx + 1);
+	return fallback;
+}
+
+static void
+_print_builtin_signature(const struct builtin_funcs *builtin)
+{
+	int i;
+
+	printf("%s(", builtin->name);
+	for (i = 0; i < builtin->minargs; i++) {
+		const char *arg_name = _builtin_generic_arg_name(i);
+
+		if (builtin->args != NULL && builtin->args[i].name != NULL)
+			arg_name = builtin->args[i].name;
+		if (i != 0)
+			printf(", ");
+		printf("%s", arg_name);
+	}
+	if (builtin->minargs != builtin->maxargs) {
+		if (builtin->minargs != 0)
+			printf(", ");
+		printf("...");
+	}
+	printf(") [builtin]\n");
+}
+
+static void
+_print_user_signature(const char *name, namelist_t namelist)
+{
+	namelist_t p;
+	int first = 1;
+
+	printf("%s(", name);
+	for (p = namelist; p != NULL; p = p->next) {
+		if (!first)
+			printf(", ");
+		printf("%s", p->name);
+		first = 0;
+	}
+	printf(") [user-defined]\n");
+}
+
+static void
+_print_arg_help(const struct builtin_arg_help *args)
+{
+	int maxlen = 0;
+	int len;
+	const struct builtin_arg_help *arg;
+
+	if (args == NULL || args[0].name == NULL)
+		return;
+
+	for (arg = args; arg->name != NULL; arg++) {
+		len = strlen(arg->name);
+		if (len > maxlen)
+			maxlen = len;
+	}
+
+	printf("\nArguments:\n");
+	for (arg = args; arg->name != NULL; arg++) {
+		printf("  %s%*s%s\n", arg->name,
+		    maxlen - (int)strlen(arg->name) + 2, "", arg->desc);
+	}
+}
+
+static void
+_print_returns(const char *returns)
+{
+	if (returns == NULL || *returns == '\0')
+		return;
+
+	printf("\nReturns:\n");
+	printf("  %s\n", returns);
+}
+
+static void
+_print_example(const char *example)
+{
+	if (example == NULL || *example == '\0')
+		return;
+
+	printf("\nExample:\n");
+	printf("  %s\n", example);
+}
+
+void
+funhelp(const char *name)
+{
+	func_t fn;
+	const struct builtin_funcs *builtin;
+	namelist_t p;
+	int argc = 0;
+	struct builtin_arg_help *user_args;
+
+	if ((fn = funlookup(name, 0)) == NULL) {
+		yyxerror("Unknown function '%s'", name);
+		return;
+	}
+
+	if (fn->builtin) {
+		builtin = _builtin_help_lookup(name);
+		if (builtin == NULL) {
+			yyxerror("Missing builtin help for '%s'", name);
+			return;
+		}
+
+		_print_builtin_signature(builtin);
+		if (builtin->summary != NULL && *builtin->summary != '\0')
+			printf("  %s\n", builtin->summary);
+		_print_arg_help(builtin->args);
+		_print_returns(builtin->returns);
+		_print_example(builtin->example);
+		return;
+	}
+
+	for (p = fn->namelist; p != NULL; p = p->next)
+		argc++;
+
+	if ((user_args = calloc((size_t)argc + 1, sizeof(*user_args))) == NULL) {
+		yyxerror("ENOMEM");
+		exit(1);
+	}
+
+	for (p = fn->namelist, argc = 0; p != NULL; p = p->next, argc++) {
+		user_args[argc].name = p->name;
+		user_args[argc].desc = "User-defined parameter.";
+	}
+
+	_print_user_signature(name, fn->namelist);
+	printf("  User-defined function. Argument names come from the definition; richer descriptions are unavailable.\n");
+	_print_arg_help(user_args);
+	_print_returns("Result of the function body.");
+	free(user_args);
+}
+
 
