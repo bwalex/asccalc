@@ -27,8 +27,16 @@ char *incpath = NULL;
 %}
 
 /* float exponent */
-EXP	([Ee][-+]?[0-9]+)
+EXP	([Ee][-+]?{DECGROUP})
 SUFFIX	([afpnumkMGTPE])
+DECDIG	[0-9]
+DECGROUP	{DECDIG}(_?{DECDIG})*
+HEXDIG	[0-9a-fA-F]
+HEXGROUP	{HEXDIG}(_?{HEXDIG})*
+BINDIG	[01]
+BINGROUP	{BINDIG}(_?{BINDIG})*
+OCTDIG	[0-7]
+OCTGROUP	{OCTDIG}(_?{OCTDIG})*
 
 %x reqb
 %x reqstr
@@ -119,15 +127,15 @@ SUFFIX	([afpnumkMGTPE])
 [a-zA-Z_][a-zA-Z0-9_]*  { yylval->s = strdup(yytext); return NAME; }
 
  /* Hex and binary numbers */
-0[xX][0-9a-fA-F]+ { yylval->a = ast_newnum(NUM_INT, yytext); return NUM; }
-0[bB][01]+ { yylval->a = ast_newnum(NUM_INT, yytext); return NUM; }
+0[xX]{HEXGROUP} { yylval->a = ast_newnum(NUM_INT, yytext); return NUM; }
+0[bB]{BINGROUP} { yylval->a = ast_newnum(NUM_INT, yytext); return NUM; }
 
  /* octal numbers */
-0[0-7]+ { yylval->a = ast_newnum(NUM_INT, yytext); return NUM; }
+0{OCTGROUP} { yylval->a = ast_newnum(NUM_INT, yytext); return NUM; }
 
  /* decimal numbers */
-(0d)?[0-9]+"."[0-9]*{EXP}?{SUFFIX}? |
-(0d)?"."?[0-9]+{EXP}?{SUFFIX}?  { yylval->a = ast_newnum(NUM_FP, yytext); return NUM; }
+(0d)?{DECGROUP}"."{DECGROUP}?{EXP}?{SUFFIX}? |
+(0d)?"."?{DECGROUP}{EXP}?{SUFFIX}?  { yylval->a = ast_newnum(NUM_FP, yytext); return NUM; }
 
 "#".*   /* ignore comment */
 "//".*  /* ignore comment */

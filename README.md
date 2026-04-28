@@ -43,6 +43,8 @@ Numbers can be expressed in many different ways. Here are some examples:
 5.71p
 ```
 
+Digits may include `_` separators for readability as long as each `_` appears between digits, for example `1_000_000`, `0xDEAD_BEEF`, `1_234.56_78`, and `5.7_1E-5`.
+
 As the last example shows, several SI suffixes are available, with their
 usual meaning:
 

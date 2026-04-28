@@ -179,15 +179,39 @@ num_new_fp(int flags, num_t b)
 }
 
 
+static
+char *
+num_normalize_literal(const char *str)
+{
+	size_t i, j, len;
+	char *normalized;
+
+	len = strlen(str);
+	if ((normalized = malloc(len + 1)) == NULL) {
+		yyxerror("ENOMEM");
+		exit(1);
+	}
+
+	for (i = 0, j = 0; i < len; ++i) {
+		if (str[i] != '_')
+			normalized[j++] = str[i];
+	}
+	normalized[j] = '\0';
+
+	return normalized;
+}
+
 num_t
 num_new_from_str(int flags, numtype_t typehint, char *str)
 {
 	numtype_t type = typehint;
 	double exp;
-	char *suffix, *s;
+	char *normalized, *suffix, *s;
 	int base, type_override, r;
 	num_t n;
 
+	normalized = num_normalize_literal(str);
+	str = normalized;
 	n = num_new(flags);
 
 	/*
@@ -279,6 +303,7 @@ num_new_from_str(int flags, numtype_t typehint, char *str)
 		}
 	}
 
+	free(normalized);
 	return n;
 }
 

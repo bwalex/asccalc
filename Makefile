@@ -6,7 +6,7 @@ INSTALL?=install
 DESTDIR?=/usr/local/bin
 
 MAJ_VER=0
-MIN_VER=20
+MIN_VER=21
 
 WARNFLAGS= -Wsystem-headers -Wall -W -Wno-unused-parameter \
 	-Wstrict-prototypes -Wmissing-prototypes -Wpointer-arith \
@@ -34,11 +34,18 @@ endif
 OBJS=	calc.tab.o lex.yy.o
 OBJS+=	linenoise.o
 OBJS+=	num.o ast.o var.o func.o hashtable.o safe_mem.o main.o
+TESTS=	tests/test_digit_separators
 
 all: asccalc
 
+test: asccalc $(TESTS)
+	./$(TESTS)
+
 asccalc: $(OBJS)
 	$(CC) $(CFLAGS) -o asccalc $^ $(LIBS)
+
+$(TESTS): tests/test_digit_separators.c
+	$(CC) $(CFLAGS) -o $@ $<
 
 calc.tab.c: calc.y lex.yy.h
 	$(BISON) -d $<
@@ -55,6 +62,8 @@ lex.yy.h: lex.yy.c
 clean:
 	$(RM) $(OBJS)
 	$(RM) asccalc
+
+	$(RM) $(TESTS)
 
 realclean: clean
 	$(RM) calc.tab.c calc.tab.h
