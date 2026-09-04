@@ -10,6 +10,7 @@
 #include <math.h>
 #include <ctype.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <stdarg.h>
 
 #include <gmp.h>
@@ -64,8 +65,7 @@ yyerror(YYLTYPE *locp, struct parse_ctx *ctx, const char *s, ...)
 %nonassoc <ct> CMP
 %left OR XOR
 %left '-' '+'
-%left '*' '/' '%' AND
-%left SHR SHL
+%left '*' '/' '%' AND SHR SHL
 %nonassoc UMINUS UNEG
 %right POW
 %nonassoc '!'
@@ -77,6 +77,12 @@ yyerror(YYLTYPE *locp, struct parse_ctx *ctx, const char *s, ...)
 %type <a> exp stmt list final_elsif conditional_stmt elsifs partsel
 %type <el> explist
 %type <nl> namelist
+
+/* Free semantic values bison discards during error recovery */
+%destructor { if ($$ != NULL) ast_delete($$); } <a>
+%destructor { free($$); } <s>
+%destructor { explist_delete($$); } <el>
+%destructor { namelist_delete($$); } <nl>
 
 %start clist
 

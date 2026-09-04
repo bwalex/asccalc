@@ -50,6 +50,9 @@ usual meaning:
 
     a,f,p,n,u,m,k,M,G,T,P,E
 
+A suffix is folded into the decimal exponent before parsing, so `1m` is
+exactly the same value as `0.001` and `5.71p` the same as `5.71e-12`.
+
 
 
 Comparison Operators (return 1 if true, otherwise 0)
@@ -230,10 +233,37 @@ Comments can either start with // or #
 
 
 
+Operator precedence
+---------
+From loosest to tightest binding. Operators on the same line bind equally
+and associate left to right, except `**` which associates right to left.
+
+```
+=
+==  !=  <  <=  >  >=
+|  or  ^  xor
++  -
+*  /  %  &  and  <<  >>
+unary -  ~
+**  ^^
+!  (factorial)
+[hi:lo]  [hi-:cnt]  [bit]
+```
+
+Shifts bind like multiplication (as in Go and Pascal), not below addition
+(as in C). So `1 << 4 - 1` is `(1 << 4) - 1` = 15, and `1 + 2 << 3` is
+`1 + (2 << 3)` = 17. Use parentheses when mixing shifts with `&`, since
+`0xF0 & 1 << 4` is `(0xF0 & 1) << 4`.
+
+Integer arithmetic is exact at any size. An integer raised to a
+non-negative integer power stays an exact integer; `ans` keeps whatever
+type the result had.
+
+
 Keywords (i.e. reserved words)
 ---------
 if, then, else, fi, while, do, done, function, endfunction, require, ls, lsfn,
-quit, exit, help, mode, and, or, xor
+quit, exit, help, mode, digits, and, or, xor
 
 
 
@@ -254,6 +284,10 @@ mode <mode>           Switches to output mode <MODE>, where mode is one of
                         s - for decimal scientific output
                         h or x - for hexadecimal output
                         o - for octal output
+digits <N>            Display non-integer results with N significant digits
+                      (default 6). Internal precision is unaffected, so this
+                      only changes how much of a result is shown.
+digits                Show the current setting
 require "<filename>"  Load and evaluate a file
 quit                  Exits the program
 exit                  Exits the program

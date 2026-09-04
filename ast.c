@@ -238,7 +238,6 @@ ast_newnamelist(char *s, namelist_t next)
 }
 
 
-static
 void
 explist_delete(explist_t e)
 {
@@ -290,7 +289,8 @@ eval(ast_t a, hashtable_t vartbl)
 		break;
 
 	case OP_LISTING:
-		eval(a->l, vartbl);
+		if (eval(a->l, vartbl) == NULL)
+			return NULL;
 		n = eval(a->r, vartbl);
 		break;
 
@@ -316,10 +316,17 @@ eval(ast_t a, hashtable_t vartbl)
 
 		case FLOW_WHILE:
 			n = num_new_const_zero(N_TEMP);
-			c = eval(af->cond, vartbl);
-			while (!num_is_zero(c)) {
-				n = eval(af->t, vartbl);
+			for (;;) {
 				c = eval(af->cond, vartbl);
+				if (c == NULL)
+					return NULL;
+				if (num_is_zero(c))
+					break;
+				if (af->t != NULL) {
+					n = eval(af->t, vartbl);
+					if (n == NULL)
+						return NULL;
+				}
 			}
 			break;
 		}
@@ -400,7 +407,12 @@ eval(ast_t a, hashtable_t vartbl)
 				return NULL;
 			}
 		}
-		n = var->v;
+		/*
+		 * Hand out a temp copy, never the stored number: the variable
+		 * may be reassigned (freeing it) before the caller is done,
+		 * and function locals are freed when the call returns.
+		 */
+		n = num_new_z_or_fp(N_TEMP, var->v);
 		break;
 
 	case OP_VARASSIGN:
@@ -415,9 +427,12 @@ eval(ast_t a, hashtable_t vartbl)
 			var = varlookup(((astassign_t) a)->name, 0);
 
 		if (var != NULL) {
-			/* dispose of old var first, unless it's the same as is being returned */
-			if (!var->no_numfree && (l != var->v))
+			if (var->no_numfree) {
+				/* a borrowed argument value; the table now owns the new one */
+				var->no_numfree = 0;
+			} else {
 				num_delete(var->v);
+			}
 		} else {
 			if (vartbl != NULL)
 				var = ext_varlookup(vartbl, ((astassign_t) a)->name, 1);
@@ -425,7 +440,9 @@ eval(ast_t a, hashtable_t vartbl)
 				var = varlookup(((astassign_t) a)->name, 1);
 		}
 
-		n = var->v = num_new_z_or_fp(0, l);
+		var->v = num_new_z_or_fp(0, l);
+		/* l is a temp or AST-owned, so it outlives this statement */
+		n = l;
 		break;
 
 	case OP_CALL:

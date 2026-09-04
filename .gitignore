@@ -1,0 +1,10 @@
+asccalc
+*.o
+calc.tab.c
+calc.tab.h
+lex.yy.c
+lex.yy.h
+tests/test_digit_separators
+tests/test_function_help
+tests/test_eval
+*~

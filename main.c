@@ -61,9 +61,15 @@ char *
 filename_in_home(const char *fname)
 {
 	static char p[4096];
-	struct passwd *pw = getpwuid(getuid());
+	const char *home = getenv("HOME");
+	struct passwd *pw;
 
-	snprintf(p, sizeof(p)-1, "%s/%s", pw->pw_dir, fname);
+	if (home == NULL || *home == '\0') {
+		pw = getpwuid(getuid());
+		home = (pw != NULL) ? pw->pw_dir : "/";
+	}
+
+	snprintf(p, sizeof(p), "%s/%s", home, fname);
 
 	return p;
 }
@@ -363,6 +369,22 @@ linenoise_completion(const char *buf, linenoiseCompletions *lc) {
 }
 
 
+/*
+ * Make 'line' the scanner's input. Each call creates a new flex buffer
+ * and releases the previous one, which flex itself never frees.
+ */
+static
+void
+scan_line(struct parse_ctx *ctx, const char *line)
+{
+	YY_BUFFER_STATE old = ctx->buf;
+
+	ctx->buf = yy_scan_string(line, ctx->scanner);
+	if (old != NULL)
+		yy_delete_buffer(old, ctx->scanner);
+}
+
+
 int
 yywrap(void *scanner)
 {
@@ -379,7 +401,7 @@ yywrap(void *scanner)
 				line = realloc(line, len+2);
 				line[len] = '\n';
 				line[len+1] = '\0';
-				yy_scan_string(line, scanner);
+				scan_line(ctx, line);
 				free(line);
 				return 0;
 			} else {
@@ -438,6 +460,7 @@ require_fd(FILE *fp, const char *fname, int silent)
 	ctx.silent = silent;
 	ctx.linecont = ctx.nesting = 0;
 	ctx.filename = fname;
+	ctx.buf = NULL;
 	yylex_init(&ctx.scanner);
 	yyset_extra(&ctx, ctx.scanner);
 	yyset_in(fp, ctx.scanner);
@@ -505,7 +528,6 @@ int
 main(int argc, char *argv[])
 {
 	struct parse_ctx ctx;
-	char *progname = argv[0];
 	char *line;
 	int len;
 	int error;
@@ -538,6 +560,7 @@ main(int argc, char *argv[])
 		ctx.silent = 0;
 		ctx.linecont = ctx.nesting = 0;
 		ctx.filename = "<stdin>";
+		ctx.buf = NULL;
 		yylex_init(&ctx.scanner);
 		yyset_extra(&ctx, ctx.scanner);
 
@@ -547,7 +570,7 @@ main(int argc, char *argv[])
 			line = realloc(line, len + 2);
 			line[len] = '\n';
 			line[len+1] = '\0';
-			yy_scan_string(line, ctx.scanner);
+			scan_line(&ctx, line);
 			free(line);
 			yyparse(&ctx);
 		}
@@ -565,6 +588,7 @@ main(int argc, char *argv[])
 static char mode = 'd';
 mpfr_rnd_t round_mode = MPFR_RNDN;
 static int scientific_mode = 0;
+int display_digits = DEFAULT_DISPLAY_DIGITS;
 
 void
 mode_switch(char new_mode)
@@ -607,11 +631,11 @@ num_print(num_t n)
 		free(s);
 	} else if (a->num_type == NUM_FP) {
 		if (scientific_mode) {
-			mpfr_printf("%.6R*G\n", round_mode, F(a));
+			mpfr_printf("%.*R*G\n", display_digits, round_mode, F(a));
 		} else if (mpfr_integer_p(F(a))) {
 			mpfr_printf("%.0R*f\n", round_mode, F(a));
 		} else {
-			mpfr_printf("%.6R*g\n", round_mode, F(a));
+			mpfr_printf("%.*R*g\n", display_digits, round_mode, F(a));
 		}
 	} else {
 		printf("invalid!\n");
@@ -658,11 +682,11 @@ num_snprint(char *s, size_t sz, int w, num_t n)
 		free(str);
 	} else if (a->num_type == NUM_FP) {
 		if (scientific_mode) {
-			r = mpfr_snprintf(s, sz, "%*.6R*G", w, round_mode, F(a));
+			r = mpfr_snprintf(s, sz, "%*.*R*G", w, display_digits, round_mode, F(a));
 		} else if (mpfr_integer_p(F(a))) {
 			r = mpfr_snprintf(s, sz, "%*.0R*f", w, round_mode, F(a));
 		} else {
-			r = mpfr_snprintf(s, sz, "%*.6R*f", w, round_mode, F(a));
+			r = mpfr_snprintf(s, sz, "%*.*R*f", w, display_digits, round_mode, F(a));
 		}
 	} else {
 		r = snprintf(s, sz, "invalid!");
@@ -680,31 +704,29 @@ go(struct parse_ctx *ctx, ast_t a)
 	var_t var;
 	num_t ans, old_ans = NULL;
 
-	//printf("Allocations: %d\n", nallocations);
 	ans = eval(a, NULL);
 
-	if (ans == NULL)
-		return;
+	if (ans != NULL) {
+		if (!ctx->silent) {
+			if (isatty(fileno(stdin)))
+				printf("ans = ");
+			num_print(ans);
+		}
 
-	if (!ctx->silent) {
-		if (isatty(fileno(stdin)))
-			printf("ans = ");
-		num_print(ans);
+		var = varlookup("ans", 1);
+		if (var->v != NULL)
+			old_ans = var->v;
+
+		/* keep integers exact; a 2048-bit float would round big ones */
+		var->v = num_new_z_or_fp(0, ans);
+
+		if (old_ans != NULL)
+			num_delete(old_ans);
 	}
 
-	var = varlookup("ans", 1);
-	if (var->v != NULL)
-		old_ans = var->v;
-
-	var->v = num_new_fp(0, ans);
-
-	if (old_ans != NULL)
-		num_delete(old_ans);
-
+	/* always release per-statement storage, even after an error */
 	num_delete_temp();
 	ast_delete(a);
-
-	//printf("Allocations: %d\n", nallocations);
 }
 
 
@@ -727,6 +749,21 @@ help(void)
 	printf("\t\t\t  of the following: b,d,s,h,o,x - for binary, decimal, \n");
 	printf("\t\t\t  scientific decimal, hexadecimal, octal, hexadecimal, \n");
 	printf("\t\t\t  output\n\n");
+	printf("\tdigits <N>\t- Display non-integer results with N significant\n");
+	printf("\t\t\t  digits (default %d); 'digits' alone shows the\n",
+	    DEFAULT_DISPLAY_DIGITS);
+	printf("\t\t\t  current setting\n\n");
 	printf("\tquit\t\t- Exits the program\n\n");
 	printf("\texit\t\t- Exits the program\n\n");
+
+	printf("Operator precedence, from loosest to tightest binding:\n");
+	printf("\t=\n");
+	printf("\t== != < <= > >=\n");
+	printf("\t| or  ^ xor\n");
+	printf("\t+ -\n");
+	printf("\t* / %% & and << >>\n");
+	printf("\tunary - ~\n");
+	printf("\t** ^^\n");
+	printf("\t! (factorial)\n");
+	printf("\t[hi:lo] [hi-:cnt] [bit] (part select)\n\n");
 }

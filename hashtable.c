@@ -122,6 +122,10 @@ _hashtable_delete(hashtable_t tbl, hashobj_t obj, unsigned int idx)
 	if (obj->next != NULL)
 		obj->next->prev = obj->prev;
 
+	/* unlinking the head must keep the rest of the chain reachable */
+	if (obj == tbl->table[idx])
+		tbl->table[idx] = obj->next;
+
 	if (tbl->dtor != NULL)
 		tbl->dtor(obj);
 
@@ -129,9 +133,6 @@ _hashtable_delete(hashtable_t tbl, hashobj_t obj, unsigned int idx)
 	obj->str = NULL;
 
 	free(obj);
-
-	if (obj == tbl->table[idx])
-		tbl->table[idx] = NULL;
 }
 
 
@@ -140,6 +141,9 @@ hashtable_remove(hashtable_t tbl, const char *needle)
 {
 	hashobj_t obj = hashtable_lookup(tbl, needle, 0);
 	unsigned int idx;
+
+	if (obj == NULL)
+		return;
 
 	idx = _hash(needle) % tbl->len;
 

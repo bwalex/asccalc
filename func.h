@@ -67,3 +67,6 @@ void fun_iterate(void *priv, var_it_fn fn);
 void user_newfun(char *name, namelist_t nl, ast_t a);
 
 #define FUNC_RAW_ARGS	0x01
+
+/* Deepest allowed nesting of user-defined function calls */
+#define MAX_CALL_DEPTH	2000

@@ -55,6 +55,26 @@ help_command(const char *text)
 	free(name);
 }
 
+static void
+digits_command(const char *text, struct parse_ctx *ctx)
+{
+	long n;
+
+	if (text != NULL) {
+		n = strtol(text, NULL, 10);
+		if (n < 1 || n > MAX_DISPLAY_DIGITS) {
+			yyxerror("digits must be between 1 and %d",
+			    MAX_DISPLAY_DIGITS);
+			return;
+		}
+		display_digits = (int)n;
+		if (ctx->silent || !ctx->interactive)
+			return;
+	}
+
+	printf("displaying %d significant digits\n", display_digits);
+}
+
 %}
 
 /* float exponent */
@@ -135,26 +155,33 @@ OCTGROUP	{OCTDIG}(_?{OCTDIG})*
 <reqb>\n        { printf("require: expected filename\n"); BEGIN 0; }
 <reqb>\"        BEGIN reqstr;
 <reqb>.         { printf("Unexpected character: %c\n", yytext[0]); BEGIN 0; return yytext[0]; }
-<reqstr>[^\\"]* { incpath = strdup(yytext); }
+<reqstr>[^\\"\n]* { free(incpath); incpath = strdup(yytext); }
 <reqstr>\"      {
-                  assert(incpath != NULL);
-		  require_file(incpath, 1);
-                  free(incpath);
+                  if (incpath == NULL) {
+                    printf("require: expected filename\n");
+                  } else {
+                    if (require_file(incpath, 1) != 0)
+                      printf("require: could not load '%s'\n", incpath);
+                    free(incpath);
+                    incpath = NULL;
+                  }
                   BEGIN 0;
                 }
 <reqstr>\n      { printf("require: unterminated filename\n"); BEGIN 0; }
 <reqstr>.       { printf("Unexpected character: %c\n", yytext[0]); BEGIN 0; return yytext[0]; }
 
  /* Commands */
-^"mode "[bdhoxs]"\n" { mode_switch(yytext[5]); if (!yyextra->silent && yyextra->interactive) printf("mode switch to %c\n", yytext[5]); }
-^"m "[bdhoxs]"\n"    { mode_switch(yytext[2]); if (!yyextra->silent && yyextra->interactive) printf("mode switch to %c\n", yytext[2]); }
-^"ls\n"           { varlist(); }
-^"lsfn\n"         { funlist(); }
-^"quit\n"         { graceful_exit();   }
-^"exit\n"         { graceful_exit();   }
-^"help"[ \t]+[a-zA-Z_][a-zA-Z0-9_]*"\n" { help_command(yytext); }
+^"mode "[bdhoxs][ \t]*"\n" { mode_switch(yytext[5]); if (!yyextra->silent && yyextra->interactive) printf("mode switch to %c\n", yytext[5]); }
+^"m "[bdhoxs][ \t]*"\n"    { mode_switch(yytext[2]); if (!yyextra->silent && yyextra->interactive) printf("mode switch to %c\n", yytext[2]); }
+^"digits"[ \t]+[0-9]+[ \t]*"\n" { digits_command(yytext + 6, yyextra); }
+^"digits"[ \t]*"\n"         { digits_command(NULL, yyextra); }
+^"ls"[ \t]*"\n"   { varlist(); }
+^"lsfn"[ \t]*"\n" { funlist(); }
+^"quit"[ \t]*"\n" { graceful_exit();   }
+^"exit"[ \t]*"\n" { graceful_exit();   }
+^"help"[ \t]+[a-zA-Z_][a-zA-Z0-9_]*[ \t]*"\n" { help_command(yytext); }
 
-^"help\n"         { help();    }
+^"help"[ \t]*"\n" { help();    }
 
  /* names; symtype returns either FUNC or VAR (if in doubt, VAR) */
 [a-zA-Z_][a-zA-Z0-9_]*  { yylval->s = strdup(yytext); return NAME; }

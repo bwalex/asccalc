@@ -132,5 +132,6 @@ ast_t ast_newflow(flowtype_t ft, ast_t c, ast_t t, ast_t f);
 explist_t ast_newexplist(ast_t exp, explist_t next);
 namelist_t ast_newnamelist(char *s, namelist_t next);
 void namelist_delete(namelist_t e);
+void explist_delete(explist_t e);
 num_t eval(ast_t a, hashtable_t vartbl);
 void ast_delete(ast_t a);

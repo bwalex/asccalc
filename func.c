@@ -49,6 +49,9 @@
 
 static hashtable_t funtbl;
 
+/* Nesting of user-defined function calls currently being evaluated */
+static int call_depth;
+
 
 static
 num_t
@@ -116,7 +119,7 @@ builtin_mpfr_fun_two_arg_ul(void *priv, const char *s, int nargs, num_t * argv)
 
 	if (!mpfr_fits_ulong_p(F(b), round_mode)) {
 		yyxerror
-		    ("Second argument to '%s' needs to fit into an unsigned long C datatype");
+		    ("Second argument to '%s' needs to fit into an unsigned long C datatype", s);
 		return NULL;
 	}
 
@@ -156,7 +159,7 @@ builtin_mpz_fun_one_arg_ul(void *priv, const char *s, int nargs, num_t * argv)
 
 	if (!mpz_fits_ulong_p(Z(a))) {
 		yyxerror
-		    ("Argument to '%s' needs to fit into an unsigned long C datatype");
+		    ("Argument to '%s' needs to fit into an unsigned long C datatype", s);
 		return NULL;
 	}
 
@@ -218,7 +221,7 @@ builtin_mpz_fun_two_arg_ul(void *priv, const char *s, int nargs, num_t * argv)
 
 	if (!mpz_fits_ulong_p(Z(b))) {
 		yyxerror
-		    ("Second argument to '%s' needs to fit into an unsigned long C datatype");
+		    ("Second argument to '%s' needs to fit into an unsigned long C datatype", s);
 		return NULL;
 	}
 
@@ -255,7 +258,7 @@ call_fun(const char *s, explist_t l, hashtable_t vartbl)
 	func_t fn;
 	explist_t p;
 	namelist_t pn;
-	num_t *args;
+	num_t *args = NULL;
 	int nargs, i;
 	var_t v;
 	num_t r;
@@ -291,7 +294,10 @@ call_fun(const char *s, explist_t l, hashtable_t vartbl)
 
 		i = 0;
 		for (p = l; p != NULL; p = p->next) {
-		  args[i++] = eval(p->ast, vartbl);
+			if ((args[i++] = eval(p->ast, vartbl)) == NULL) {
+				free_safe_mem(BUCKET_MANUAL, args);
+				return NULL;
+			}
 		}
 	}
 
@@ -302,7 +308,17 @@ call_fun(const char *s, explist_t l, hashtable_t vartbl)
 			r = fn->fn(vartbl, s, nargs, (void *)l);
 		}
 	} else {
-		hashtable_t argtbl = ext_varinit(121);
+		hashtable_t argtbl;
+
+		/* runaway recursion would otherwise overflow the C stack */
+		if (call_depth >= MAX_CALL_DEPTH) {
+			yyxerror("Function '%s': call depth exceeds %d",
+			    s, MAX_CALL_DEPTH);
+			free_safe_mem(BUCKET_MANUAL, args);
+			return NULL;
+		}
+
+		argtbl = ext_varinit(121);
 
 		for (pn = fn->namelist, i = 0; pn != NULL; pn = pn->next, i++) {
 			v = ext_varlookup(argtbl, pn->name, 1);
@@ -310,7 +326,9 @@ call_fun(const char *s, explist_t l, hashtable_t vartbl)
 			v->no_numfree = 1;
 		}
 
+		++call_depth;
 		r = eval(fn->ast, argtbl);
+		--call_depth;
 
 		hashtable_destroy(argtbl);
 	}
@@ -518,15 +536,19 @@ builtin_tabulate(void *priv, const char *s, int nargs, num_t * argv)
 
 	--nargs;
 
+	/*
+	 * Plain pointer arrays: they must not live in the num temp bucket,
+	 * whose destructor would treat them as numbers.
+	 */
 	if ((args =
-		alloc_safe_mem(BUCKET_NUM_TEMP,
+		alloc_safe_mem(BUCKET_MANUAL,
 		    sizeof(num_t) * nargs)) == NULL) {
 		yyxerror("ENOMEM");
 		exit(1);
 	}
 
 	if ((results =
-		alloc_safe_mem(BUCKET_NUM_TEMP,
+		alloc_safe_mem(BUCKET_MANUAL,
 		    sizeof(num_t) * nargs)) == NULL) {
 		yyxerror("ENOMEM");
 		exit(1);
@@ -537,10 +559,14 @@ builtin_tabulate(void *priv, const char *s, int nargs, num_t * argv)
 		struct explist lx;
 
 		args[i] = eval(p->ast, vartbl);
+		if (args[i] == NULL)
+			goto out;
 
 		lx.ast = p->ast;
 		lx.next = NULL;
 		results[i] = call_fun(fn_name, &lx, vartbl);
+		if (results[i] == NULL)
+			goto out;
 
 		n = num_snprint(buf, sizeof(buf)-1, 0, results[i]);
 		if (n > maxreslen)
@@ -557,7 +583,58 @@ builtin_tabulate(void *priv, const char *s, int nargs, num_t * argv)
 		printf("%s | %s\n", buf, buf2);
 	}
 
+out:
+	free_safe_mem(BUCKET_MANUAL, results);
+	free_safe_mem(BUCKET_MANUAL, args);
+
 	return NULL;
+}
+
+
+static
+num_t
+builtin_remfac(void *priv, const char *s, int nargs, num_t * argv)
+{
+	num_t r;
+	num_t a, b;
+
+	r = num_new_z(N_TEMP, NULL);
+	a = num_new_z(N_TEMP, argv[0]);
+	b = num_new_z(N_TEMP, argv[1]);
+
+	if (mpz_sgn(Z(b)) == 0) {
+		yyxerror("remfac: factor must be non-zero");
+		return NULL;
+	}
+
+	mpz_remove(Z(r), Z(a), Z(b));
+
+	return r;
+}
+
+
+static
+num_t
+builtin_invert(void *priv, const char *s, int nargs, num_t * argv)
+{
+	num_t r;
+	num_t a, n;
+
+	r = num_new_z(N_TEMP, NULL);
+	a = num_new_z(N_TEMP, argv[0]);
+	n = num_new_z(N_TEMP, argv[1]);
+
+	if (mpz_sgn(Z(n)) == 0) {
+		yyxerror("%s: modulus must be non-zero", s);
+		return NULL;
+	}
+
+	if (mpz_invert(Z(r), Z(a), Z(n)) == 0) {
+		yyxerror("%s: no inverse exists", s);
+		return NULL;
+	}
+
+	return r;
 }
 
 
@@ -953,7 +1030,7 @@ struct builtin_funcs
     "The least common multiple of a and b.",
     arg_help_two_ints,
     NULL },
-  { "remfac"    , mpz_remove     , builtin_mpz_fun_two_arg        , 2, 2   , 0,
+  { "remfac"    , NULL           , builtin_remfac                 , 2, 2   , 0,
     "Remove a repeated factor.",
     "a with all factors of b removed.",
     arg_help_remfac,
@@ -973,12 +1050,12 @@ struct builtin_funcs
     "The n-th Fibonacci number.",
     arg_help_fib,
     NULL },
-  { "invert"    , mpz_invert     , builtin_mpz_fun_two_arg        , 2, 2   , 0,
+  { "invert"    , NULL           , builtin_invert                 , 2, 2   , 0,
     "Modular inverse.",
     "A value x such that (a * x) % N == 1, when one exists.",
     arg_help_inv,
     "invert(3, 11) => 4" },
-  { "inv"       , mpz_invert     , builtin_mpz_fun_two_arg        , 2, 2   , 0,
+  { "inv"       , NULL           , builtin_invert                 , 2, 2   , 0,
     "Modular inverse.",
     "A value x such that (a * x) % N == 1, when one exists.",
     arg_help_inv,
@@ -1078,11 +1155,9 @@ user_newfun(char *name, namelist_t nl, ast_t a)
 	for (p = nl; p != NULL; p = p->next)
 		++i;
 
-	if ((fn = funlookup(name, 0)) != NULL) {
-		  ast_delete(fn->ast);
-		  namelist_delete(fn->namelist);
-	} else {
-		fn = funlookup(name, 1);
+	if ((fn = funlookup(name, 0)) != NULL && !fn->builtin) {
+		ast_delete(fn->ast);
+		namelist_delete(fn->namelist);
 	}
 
 	fn = funlookup(name, 1);
@@ -1096,6 +1171,7 @@ user_newfun(char *name, namelist_t nl, ast_t a)
 	fn->ast = a;
 
 	printf("Defined function '%s'\n", name);
+	free(name);
 }
 
 

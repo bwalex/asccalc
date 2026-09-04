@@ -46,6 +46,9 @@
 #include "calc.h"
 #include "safe_mem.h"
 
+/* Largest integer power (in result bits) computed exactly with GMP */
+#define MAX_EXACT_POW_BITS	(1 << 28)
+
 void
 num_delete(num_t a)
 {
@@ -84,8 +87,6 @@ static
 mpfr_prec_t
 num_prec(num_t a)
 {
-	mpfr_prec_t prec;
-
 	if (a != NULL && a->num_type == NUM_INT) {
 		/* XXX: completely arbitrary! */
 		return 2048;
@@ -201,11 +202,12 @@ num_normalize_literal(const char *str)
 	return normalized;
 }
 
+static char *num_apply_si_suffix(const char *str);
+
 num_t
 num_new_from_str(int flags, numtype_t typehint, char *str)
 {
 	numtype_t type = typehint;
-	double exp;
 	char *normalized, *suffix, *s;
 	int base, type_override, r;
 	num_t n;
@@ -234,77 +236,96 @@ num_new_from_str(int flags, numtype_t typehint, char *str)
 
 	n->num_type = type;
 
-	base = 0;
+	/*
+	 * Decimal literals (the NUM_FP hint) are always base 10, even when
+	 * they start with 0: base 0 would make GMP read "08" as octal.
+	 * Hex, binary and octal literals carry their prefix for base 0.
+	 */
+	base = (typehint == NUM_FP) ? 10 : 0;
 
-	if (str[1] == 'd') {
-		base = 10;
+	if (str[1] == 'd')
 		str += 2;
-	}
 
 	if (type == NUM_INT) {
 		if ((r = mpz_init_set_str(Z(n), str, base)) != 0) {
-			yyxerror("mpz_init_set_str");
-			mpz_clear(Z(n));
+			yyxerror("Invalid integer literal '%s'", str);
+			mpz_set_ui(Z(n), 0);
 		}
 	} else {
-		if (str[1] == 'd')
-			str += 2;
+		s = num_apply_si_suffix(str);
+		if (s != NULL) {
+			free(normalized);
+			normalized = str = s;
+		}
 
 		mpfr_init(F(n));
 		r = mpfr_strtofr(F(n), str, &suffix, 0, round_mode);
-
-		/*
-		 * XXX: add support for IEC binary prefixes?
-		 */
 		if (*suffix != '\0') {
-			switch (*suffix) {
-			case 'k':
-				exp = 1000;
-				break;
-			case 'M':
-				exp = 1000000;
-				break;
-			case 'G':
-				exp = 1000000000;
-				break;
-			case 'T':
-				exp = 1000000000000;
-				break;
-			case 'P':
-				exp = 1000000000000000;
-				break;
-			case 'E':
-				exp = 1000000000000000000;
-				break;
-			case 'm':
-				exp = 0.001;
-				break;
-			case 'u':
-				exp = 0.000001;
-				break;
-			case 'n':
-				exp = 0.000000001;
-				break;
-			case 'p':
-				exp = 0.000000000001;
-				break;
-			case 'f':
-				exp = 0.000000000000001;
-				break;
-			case 'a':
-				exp = 0.000000000000000001;
-				break;
-			default:
-				yyxerror("Unknown suffix");
-				exit(1);
-			}
-
-			mpfr_mul_d(F(n), F(n), exp, round_mode);
+			yyxerror("Unknown suffix '%s'", suffix);
+			mpfr_set_nan(F(n));
 		}
 	}
 
 	free(normalized);
 	return n;
+}
+
+
+/*
+ * Fold an SI suffix into the decimal exponent of a literal so it can be
+ * parsed in a single, correctly rounded mpfr_strtofr call. Scaling after
+ * parsing (formerly by a double) rounds twice and made 1m != 0.001.
+ *
+ * Returns a newly allocated literal without the suffix, or NULL if the
+ * literal has no suffix.
+ */
+static
+char *
+num_apply_si_suffix(const char *str)
+{
+	static const struct {
+		char suffix;
+		int exp10;
+	} si[] = {
+		{ 'a', -18 }, { 'f', -15 }, { 'p', -12 }, { 'n', -9 },
+		{ 'u',  -6 }, { 'm',  -3 }, { 'k',   3 }, { 'M',  6 },
+		{ 'G',   9 }, { 'T',  12 }, { 'P',  15 }, { 'E', 18 },
+	};
+	size_t len = strlen(str);
+	size_t i, mant_len;
+	const char *e;
+	long exp10 = 0;
+	char *out;
+
+	if (len == 0)
+		return NULL;
+
+	for (i = 0; i < sizeof(si) / sizeof(si[0]); i++)
+		if (si[i].suffix == str[len - 1])
+			break;
+	if (i == sizeof(si) / sizeof(si[0]))
+		return NULL;
+
+	exp10 = si[i].exp10;
+	mant_len = len - 1;
+
+	/* 'E' is both the exa suffix and an exponent marker; "1E" is exa. */
+	for (e = str; e < str + mant_len; e++) {
+		if (*e == 'e' || *e == 'E') {
+			exp10 += strtol(e + 1, NULL, 10);
+			mant_len = (size_t)(e - str);
+			break;
+		}
+	}
+
+	if ((out = malloc(mant_len + 32)) == NULL) {
+		yyxerror("ENOMEM");
+		exit(1);
+	}
+	memcpy(out, str, mant_len);
+	snprintf(out + mant_len, 32, "e%ld", exp10);
+
+	return out;
 }
 
 
@@ -517,15 +538,21 @@ num_int_part_sel(pseltype_t op_type, num_t hi, num_t lo, num_t a)
 		return NULL;
 	}
 
+	if (mpz_cmp(Z(hi), Z(lo)) < 0) {
+		yyxerror("high index of part select operation must not be "
+		    "below the low index");
+		return NULL;
+	}
+
 	lo_ui = mpz_get_ui(Z(lo));
 	mask_shl = 1 + (mpz_get_ui(Z(hi)) - lo_ui);
 
 	/*
 	 * We do the part sel by:
-	 *  (1) shifting right by 'lo'
+	 *  (1) shifting right by 'lo' (floor, i.e. arithmetic, like >>)
 	 *  (2) anding with ((1 << mask_shl)-1)
 	 */
-	mpz_div_2exp(Z(r), Z(a), lo_ui);
+	mpz_fdiv_q_2exp(Z(r), Z(a), lo_ui);
 	mpz_set_ui(Z(m), 1UL);
 	mpz_mul_2exp(Z(m), Z(m), mask_shl);
 	mpz_sub_ui(Z(m), Z(m), 1UL);
@@ -539,21 +566,25 @@ num_int_part_sel(pseltype_t op_type, num_t hi, num_t lo, num_t a)
 num_t
 num_float_two_op(optype_t op_type, num_t a, num_t b)
 {
-	num_t r, r_z, rem_z, a_z, b_z;
+	num_t r, r_z = NULL, rem_z = NULL, a_z = NULL, b_z = NULL;
 	int both_z = num_both_z(a, b);
 
 	r = num_new_fp(N_TEMP, NULL);
 	mpfr_set_prec(F(r), num_max_prec(a, b));
 
-	a = num_new_fp(N_TEMP, a);
-	b = num_new_fp(N_TEMP, b);
-
+	/*
+	 * Take the integer copies from the originals: going through the
+	 * float copies would round integers wider than 2048 bits.
+	 */
 	if (both_z) {
 		r_z = num_new_z(N_TEMP, NULL);
 		rem_z = num_new_z(N_TEMP, NULL);
 		a_z = num_new_z(N_TEMP, a);
 		b_z = num_new_z(N_TEMP, b);
 	}
+
+	a = num_new_fp(N_TEMP, a);
+	b = num_new_fp(N_TEMP, b);
 
 	switch (op_type) {
 	case OP_ADD:
@@ -584,16 +615,20 @@ num_float_two_op(optype_t op_type, num_t a, num_t b)
 		break;
 
 	case OP_DIV:
-		if (both_z)
+		/* GMP raises SIGFPE on division by zero; let MPFR yield inf/nan */
+		if (both_z && !num_is_zero(b_z)) {
 			mpz_divmod(Z(r_z), Z(rem_z), Z(a_z), Z(b_z));
-
-		if (both_z && num_is_zero(rem_z))
-			return r_z;
-		else
-			mpfr_div(F(r), F(a), F(b), round_mode);
+			if (num_is_zero(rem_z))
+				return r_z;
+		}
+		mpfr_div(F(r), F(a), F(b), round_mode);
 		break;
 
 	case OP_MOD:
+		if (num_is_zero(b)) {
+			yyxerror("modulo by zero");
+			return NULL;
+		}
 		if (both_z) {
 			mpz_mod(Z(r_z), Z(a_z), Z(b_z));
 			return r_z;
@@ -606,6 +641,18 @@ num_float_two_op(optype_t op_type, num_t a, num_t b)
 		break;
 
 	case OP_POW:
+		/*
+		 * Integer base and non-negative integer exponent: compute
+		 * exactly with GMP, unless the result would be absurdly
+		 * large (mpfr_pow then gives a rounded value or inf).
+		 */
+		if (both_z && mpz_sgn(Z(b_z)) >= 0 &&
+		    mpz_fits_ulong_p(Z(b_z)) &&
+		    mpz_sizeinbase(Z(a_z), 2) * (double)mpz_get_ui(Z(b_z)) <
+		    MAX_EXACT_POW_BITS) {
+			mpz_pow_ui(Z(r_z), Z(a_z), mpz_get_ui(Z(b_z)));
+			return r_z;
+		}
 		mpfr_pow(F(r), F(a), F(b), round_mode);
 		break;
 

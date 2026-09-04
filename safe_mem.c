@@ -28,7 +28,6 @@
  */
 
 #include <sys/types.h>
-#include <sys/mman.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -81,7 +80,7 @@ init_safe_mem_bucket(int bucket, safe_mem_ctor_t ctor, safe_mem_dtor_t dtor)
 void *
 _alloc_safe_mem(int bucket, size_t req_sz, const char *file, int line)
 {
-	struct safe_mem_hdr *hdr, *hdrp;
+	struct safe_mem_hdr *hdr;
 	struct safe_mem_tail *tail;
 	size_t alloc_sz;
 	char *mem, *user_mem;
@@ -97,17 +96,11 @@ _alloc_safe_mem(int bucket, size_t req_sz, const char *file, int line)
 		return NULL;
 	}
 
-	if (mlock(mem, alloc_sz) < 0) {
-#ifdef DEBUG
-		fprintf(stderr, "_alloc_safe_mem: %s:%d, mlock(%p) < 0: %s\n",
-			file, line, mem, strerror(errno));
-#endif
-#ifdef ENFORCE_MLOCK
-		free(mem);
-		return NULL;
-#endif
-	}
-
+	/*
+	 * No mlock here: this allocator was written for secret-holding
+	 * buffers, but a calculator has none, and locking every small
+	 * allocation costs a syscall each and exhausts RLIMIT_MEMLOCK.
+	 */
 	memset(mem, 0, alloc_sz);
 
 	hdr = (struct safe_mem_hdr *) mem;
@@ -120,17 +113,12 @@ _alloc_safe_mem(int bucket, size_t req_sz, const char *file, int line)
 	hdr->alloc_sz = alloc_sz;
 	hdr->file = file;
 	hdr->line = line;
-	hdr->next = NULL;
-
-	if (safe_mem_hdr_first[bucket] == NULL) {
-		safe_mem_hdr_first[bucket] = hdr;
-	} else {
-		hdrp = safe_mem_hdr_first[bucket];
-		while (hdrp->next != NULL)
-			hdrp = hdrp->next;
-		hdr->prev = hdrp;
-		hdrp->next = hdr;
-	}
+	/* Push onto the bucket list head: O(1) instead of walking the list */
+	hdr->prev = NULL;
+	hdr->next = safe_mem_hdr_first[bucket];
+	if (hdr->next != NULL)
+		hdr->next->prev = hdr;
+	safe_mem_hdr_first[bucket] = hdr;
 
 	if ((safe_mem_bucket_md[bucket].used) &&
 	    (safe_mem_bucket_md[bucket].ctor != NULL))
@@ -199,9 +187,6 @@ _free_safe_mem(int bucket, void *mem_ptr, const char *file, int line)
 
 	--nallocations;
 
-#if 0
-	munlock(mem, alloc_sz);
-#endif
 	free(mem);
 }
 

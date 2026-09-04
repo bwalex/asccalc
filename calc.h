@@ -44,9 +44,15 @@
 #define BUCKET_VAR 4
 #define BUCKET_FUN 5
 
+/* Default and upper bound for the 'digits' display command */
+#define DEFAULT_DISPLAY_DIGITS	6
+#define MAX_DISPLAY_DIGITS	1000
+
 extern mpfr_rnd_t round_mode;
+extern int display_digits;
 
 void go(struct parse_ctx *ctx, ast_t a);
+int require_file(const char *file, int silent);
 void num_print(num_t n);
 int num_snprint(char *s, size_t sz, int w, num_t n);
 void yyxerror(const char *s, ...);

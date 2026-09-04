@@ -6,20 +6,20 @@ INSTALL?=install
 DESTDIR?=/usr/local/bin
 
 MAJ_VER=0
-MIN_VER=22
+MIN_VER=23
 
 WARNFLAGS= -Wsystem-headers -Wall -W -Wno-unused-parameter \
 	-Wstrict-prototypes -Wmissing-prototypes -Wpointer-arith \
 	-Wold-style-definition -Wreturn-type -Wwrite-strings \
 	-Wswitch -Wshadow -Wcast-align -Wchar-subscripts \
 	-Winline -Wnested-externs \
-	-Wno-error -Wno-implicit-function-declaration
+	-Wno-error
 
 #WARNFLAGS+= -Werror -Wcast-qual -Wunused-parameter
 
 VER_FLAGS= -DMAJ_VER=$(MAJ_VER) -DMIN_VER=$(MIN_VER)
 
-CFLAGS=	$(WARNFLAGS) $(VER_FLAGS) -std=c99 -D_BSD_SOURCE `pkg-config gmp mpfr --cflags`
+CFLAGS=	$(WARNFLAGS) $(VER_FLAGS) -std=c99 -D_DEFAULT_SOURCE `pkg-config gmp mpfr --cflags`
 CFLAGS_DEBUG= -O0 -g3
 CFLAGS_OPT=   -O4 -flto
 LDFLAGS=
@@ -31,10 +31,13 @@ else
   CFLAGS += $(CFLAGS_OPT)
 endif
 
+HEADERS= calc.h parse_ctx.h optype.h num.h var.h ast.h func.h hashtable.h \
+	safe_mem.h linenoise.h
+
 OBJS=	calc.tab.o lex.yy.o
 OBJS+=	linenoise.o
 OBJS+=	num.o ast.o var.o func.o hashtable.o safe_mem.o main.o
-TESTS=	tests/test_digit_separators tests/test_function_help
+TESTS=	tests/test_digit_separators tests/test_function_help tests/test_eval
 
 all: asccalc
 
@@ -44,10 +47,9 @@ test: asccalc $(TESTS)
 asccalc: $(OBJS)
 	$(CC) $(CFLAGS) -o asccalc $^ $(LIBS)
 
-tests/test_digit_separators: tests/test_digit_separators.c
-	$(CC) $(CFLAGS) -o $@ $<
+$(OBJS): $(HEADERS) calc.tab.h lex.yy.h
 
-tests/test_function_help: tests/test_function_help.c
+tests/%: tests/%.c tests/harness.h
 	$(CC) $(CFLAGS) -o $@ $<
 
 calc.tab.c: calc.y lex.yy.h
